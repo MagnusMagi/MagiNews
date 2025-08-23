@@ -66,26 +66,7 @@ struct HomeView: View {
                 await refreshContent()
             }
             .sheet(isPresented: $showingDailyDigest) {
-                DailyDigestView(articles: newsRepository.getDailyDigest().map { article in
-                    CachedArticle(
-                        id: article.id,
-                        rssItem: RSSItem(
-                            title: article.title,
-                            link: article.link,
-                            description: article.content,
-                            pubDate: article.publishedAt,
-                            category: article.category,
-                            imageURL: article.imageURL
-                        ),
-                        summary: article.summary,
-                        translatedTitle: nil,
-                        translatedSummary: nil,
-                        cachedAt: Date(),
-                        source: article.source,
-                        region: article.region,
-                        language: article.language
-                    )
-                })
+                DailyDigestView(articles: newsRepository.getDailyDigest())
             }
             .task {
                 await loadInitialContent()

@@ -329,7 +329,7 @@ struct ArticleDetailView: View {
                 )
                 
                 await MainActor.run {
-                    aiSummary = summary
+                    aiSummary = summary ?? "Failed to generate summary"
                     isGeneratingSummary = false
                 }
             } catch {
@@ -521,12 +521,11 @@ struct TranslationView: View {
             do {
                 let translation = try await summarizationService.translateArticle(
                     content,
-                    from: sourceLanguage,
                     to: targetLanguage
                 )
                 
                 await MainActor.run {
-                    translatedText = translation
+                    translatedText = translation ?? "Translation failed"
                     isTranslating = false
                 }
             } catch {

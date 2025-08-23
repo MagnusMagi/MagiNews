@@ -8,11 +8,13 @@
 import SwiftUI
 
 struct DailyDigestView: View {
-    let articles: [CachedArticle]
+    let articles: [Article]
     @StateObject private var summarizationService = SummarizationService()
+    @StateObject private var voiceReader = VoiceReader()
     @State private var digestSummary: String = ""
     @State private var isGenerating = false
     @State private var errorMessage: String?
+    @State private var selectedLanguage: String = "en"
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -38,7 +40,16 @@ struct DailyDigestView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if !digestSummary.isEmpty {
+                    HStack {
+                        if !digestSummary.isEmpty {
+                            Button(action: {
+                                voiceReader.readDailyDigest(digestSummary, language: selectedLanguage)
+                            }) {
+                                Image(systemName: voiceReader.isReading ? "stop.fill" : "speaker.wave.2.fill")
+                            }
+                            .disabled(voiceReader.isReading)
+                        }
+                        
                         Button(action: shareDigest) {
                             Image(systemName: "square.and.arrow.up")
                         }
@@ -72,6 +83,28 @@ struct DailyDigestView: View {
                     .multilineTextAlignment(.center)
             }
             
+            // Language Selector
+            VStack(spacing: 12) {
+                Text("Language")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                Picker("Language", selection: $selectedLanguage) {
+                    Text("🇺🇸 English").tag("en")
+                    Text("🇪🇪 Eesti").tag("et")
+                    Text("🇱🇻 Latviešu").tag("lv")
+                    Text("🇱🇹 Lietuvių").tag("lt")
+                    Text("🇫🇮 Suomi").tag("fi")
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .onChange(of: selectedLanguage) { _ in
+                    if !digestSummary.isEmpty {
+                        regenerateDigest()
+                    }
+                }
+            }
+            .padding(.horizontal)
+            
             // Articles preview
             VStack(alignment: .leading, spacing: 16) {
                 Text("Top Stories")
@@ -84,7 +117,7 @@ struct DailyDigestView: View {
                             .foregroundColor(.blue)
                             .fontWeight(.bold)
                         
-                        Text(article.rssItem.title)
+                        Text(article.title)
                             .font(.subheadline)
                             .lineLimit(2)
                         
@@ -218,7 +251,7 @@ struct DailyDigestView: View {
                                 .clipShape(Circle())
                             
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(article.rssItem.title)
+                                Text(article.title)
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                     .lineLimit(3)
@@ -279,23 +312,21 @@ struct DailyDigestView: View {
     
     // MARK: - Actions
     private func generateDigest() {
+        guard !articles.isEmpty else { return }
+        
         isGenerating = true
         errorMessage = nil
         
         Task {
-            do {
-                let rssItems = articles.map { $0.rssItem }
-                let summary = try await summarizationService.generateDailyDigest(rssItems)
-                
-                await MainActor.run {
-                    digestSummary = summary
-                    isGenerating = false
+            let digest = await summarizationService.generateDailyDigest(from: articles, language: selectedLanguage)
+            
+            await MainActor.run {
+                if let digest = digest {
+                    digestSummary = digest
+                } else {
+                    errorMessage = summarizationService.errorMessage ?? "Failed to generate digest"
                 }
-            } catch {
-                await MainActor.run {
-                    errorMessage = error.localizedDescription
-                    isGenerating = false
-                }
+                isGenerating = false
             }
         }
     }
@@ -325,22 +356,19 @@ struct DailyDigestView: View {
 
 #Preview {
     let sampleArticles = [
-        CachedArticle(
-            rssItem: RSSItem(
-                title: "Sample Article 1",
-                link: "https://example.com",
-                description: "Sample description",
-                pubDate: "2025-08-24",
-                category: "Technology",
-                imageURL: nil
-            ),
-            summary: nil,
-            translatedTitle: nil,
-            translatedSummary: nil,
-            cachedAt: Date(),
+        Article(
+            id: UUID(),
+            title: "Sample Article 1",
+            content: "Sample content for testing",
+            summary: "Sample description for testing purposes",
+            author: "Test Author",
+            publishedAt: "Mon, 24 Aug 2025 10:00:00 +0000",
+            imageURL: nil,
+            category: "Technology",
             source: "ERR.ee",
             region: "Estonia",
-            language: "Estonian"
+            language: "en",
+            link: "https://example.com"
         )
     ]
     

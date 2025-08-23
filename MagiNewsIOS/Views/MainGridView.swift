@@ -37,10 +37,10 @@ struct MainGridView: View {
             articles = articles.filter { $0.category.lowercased().contains(selectedCategory.lowercased()) }
         }
         
-        // Filter by country
-        if selectedCountry != "All" {
-            articles = articles.filter { $0.region == selectedCountry }
-        }
+        // Filter by country - Temporarily disabled
+        // if selectedCountry != "All" {
+        //     articles = articles.filter { $0.region == selectedCountry }
+        // }
         
         // Filter by search text
         if !searchText.isEmpty {
@@ -83,26 +83,7 @@ struct MainGridView: View {
                 await refreshContent()
             }
             .sheet(isPresented: $showingDailyDigest) {
-                DailyDigestView(articles: newsRepository.getDailyDigest().map { article in
-                    CachedArticle(
-                        id: article.id,
-                        rssItem: RSSItem(
-                            title: article.title,
-                            link: article.link,
-                            description: article.content,
-                            pubDate: article.publishedAt,
-                            category: article.category,
-                            imageURL: article.imageURL
-                        ),
-                        summary: article.summary,
-                        translatedTitle: nil,
-                        translatedSummary: nil,
-                        cachedAt: Date(),
-                        source: article.source,
-                        region: article.region,
-                        language: article.language
-                    )
-                })
+                DailyDigestView(articles: newsRepository.getDailyDigest())
             }
             .sheet(isPresented: $showingSearch) {
                 SearchView(
@@ -162,34 +143,44 @@ struct MainGridView: View {
     }
     
     private var articlesGrid: some View {
-        ScrollView {
-            LazyVGrid(
-                columns: gridColumns,
-                spacing: 16,
-                content: {
-                    ForEach(filteredArticles) { article in
-                        NavigationLink(destination: ArticleDetailView(article: convertToCache(article))) {
-                            NewsCardView(
-                                article: convertToCache(article),
-                                isBookmarked: .constant(bookmarkManager.isBookmarked(article.id)),
-                                onTap: {},
-                                onBookmarkToggle: {
-                                    bookmarkManager.toggleBookmark(for: article.id)
-                                }
-                            )
+        GeometryReader { geometry in
+            ScrollView {
+                LazyVGrid(
+                    columns: adaptiveGridColumns(for: geometry.size.width),
+                    spacing: 12,
+                    content: {
+                        ForEach(filteredArticles) { article in
+                            NavigationLink(destination: ArticleDetailView(article: convertToCache(article))) {
+                                NewsCardView(
+                                    article: article,
+                                    isBookmarked: .constant(bookmarkManager.isBookmarked(article.id)),
+                                    onTap: {},
+                                    onBookmarkToggle: {
+                                        bookmarkManager.toggleBookmark(for: article.id)
+                                    }
+                                )
+                                .frame(maxWidth: .infinity)
+                                .aspectRatio(0.75, contentMode: .fit) // Consistent aspect ratio
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
-                }
-            )
-            .padding(.horizontal, 16)
-            .padding(.bottom, 100) // Bottom bar için space
+                )
+                .padding(.horizontal, 12)
+                .padding(.bottom, 100) // Bottom bar space
+            }
         }
     }
     
-    private var gridColumns: [GridItem] {
-        let columns = UIDevice.current.userInterfaceIdiom == .pad ? 3 : 2
-        return Array(repeating: GridItem(.flexible(), spacing: 16), count: columns)
+    private func adaptiveGridColumns(for width: CGFloat) -> [GridItem] {
+        let minCardWidth: CGFloat = 160
+        let spacing: CGFloat = 12
+        let horizontalPadding: CGFloat = 24
+        
+        let availableWidth = width - horizontalPadding
+        let columns = max(1, Int(availableWidth / (minCardWidth + spacing)))
+        
+        return Array(repeating: GridItem(.flexible(), spacing: spacing), count: columns)
     }
     
     // MARK: - Bottom Navigation Bar
@@ -198,9 +189,9 @@ struct MainGridView: View {
         VStack(spacing: 0) {
             Divider()
             
-            HStack(spacing: 20) {
-                // Country Selector
-                countrySelector
+            HStack(spacing: 30) {
+                // Country Selector - Temporarily disabled
+                // countrySelector
                 
                 Spacer()
                 
@@ -237,6 +228,8 @@ struct MainGridView: View {
                     }
                     .foregroundColor(.orange)
                 }
+                
+                Spacer()
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 16)

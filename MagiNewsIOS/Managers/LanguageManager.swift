@@ -62,7 +62,7 @@ class LanguageManager: ObservableObject {
 extension View {
     func localizedText(_ key: String, comment: String = "") -> some View {
         let language = LanguageManager().getCurrentLanguage()
-        let localizedString = NSLocalizedString(key, comment: comment)
+        _ = NSLocalizedString(key, comment: comment)
         return self.environment(\.locale, Locale(identifier: language.rawValue))
     }
 }

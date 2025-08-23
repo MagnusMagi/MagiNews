@@ -8,41 +8,29 @@
 import SwiftUI
 
 struct NewsCardView: View {
-    let article: CachedArticle
+    let article: Article
     @Binding var isBookmarked: Bool
     let onTap: () -> Void
     let onBookmarkToggle: () -> Void
+    
+    // Removed sentiment analysis for better performance
     
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Image Section
-            if let imageURL = article.rssItem.imageURL, !imageURL.isEmpty {
-                AsyncImage(url: URL(string: imageURL)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color(.systemGray5))
-                        .overlay(
-                            Image(systemName: "photo")
-                                .font(.title2)
-                                .foregroundColor(.secondary)
-                        )
-                }
-                .frame(height: horizontalSizeClass == .compact ? 200 : 240)
-                .clipped()
-            }
+            // Image Section with consistent aspect ratio
+            imageSection
             
             // Content Section
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
                 // Header with Category and Bookmark
                 HStack {
-                    CategoryBadge(category: article.rssItem.category ?? "General")
+                    CategoryBadge(category: article.category)
+                    
                     Spacer()
+                    
                     BookmarkButton(
                         isBookmarked: $isBookmarked,
                         onToggle: onBookmarkToggle
@@ -50,40 +38,38 @@ struct NewsCardView: View {
                 }
                 
                 // Title
-                Text(article.rssItem.title)
-                    .font(.title3)
+                Text(article.title)
+                    .font(.subheadline)
                     .fontWeight(.bold)
-                    .lineLimit(2)
+                    .lineLimit(3)
                     .foregroundColor(primaryTextColor)
+                    .fixedSize(horizontal: false, vertical: true)
                 
-                // Summary
-                if let summary = article.summary, !summary.isEmpty {
-                    Text(summary)
-                        .font(.subheadline)
-                        .lineLimit(3)
-                        .foregroundColor(secondaryTextColor)
-                } else {
-                    Text(article.rssItem.description)
-                        .font(.subheadline)
-                        .lineLimit(3)
+                // Summary (only for larger cards)
+                if horizontalSizeClass == .regular {
+                    Text(article.summary)
+                        .font(.caption)
+                        .lineLimit(2)
                         .foregroundColor(secondaryTextColor)
                 }
+                
+                Spacer()
                 
                 // Footer with Source and Time
                 HStack {
                     Text(article.source)
-                        .font(.caption)
+                        .font(.caption2)
                         .fontWeight(.medium)
                         .foregroundColor(.blue)
                     
                     Spacer()
                     
                     Text(timeAgoString)
-                        .font(.caption)
+                        .font(.caption2)
                         .foregroundColor(tertiaryTextColor)
                 }
             }
-            .padding(20)
+            .padding(16)
         }
         .background(cardBackgroundColor)
         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -98,19 +84,53 @@ struct NewsCardView: View {
                 onTap()
             }
         }
+        // Removed onAppear sentiment analysis for better performance
         .transition(.opacity.combined(with: .scale))
     }
     
     // MARK: - Computed Properties
     
-    private var timeAgoString: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        
-        if let date = parseDate(from: article.rssItem.pubDate) {
-            return formatter.localizedString(for: date, relativeTo: Date())
+    private var imageSection: some View {
+        GeometryReader { geometry in
+            if let imageURL = article.imageURL, !imageURL.isEmpty {
+                AsyncImage(url: URL(string: imageURL)) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .clipped()
+                            .transition(.opacity.animation(.easeInOut(duration: 0.3)))
+                    case .failure(_):
+                        imagePlaceholder
+                    case .empty:
+                        imagePlaceholder
+                            .redacted(reason: .placeholder)
+                    @unknown default:
+                        imagePlaceholder
+                    }
+                }
+            } else {
+                imagePlaceholder
+            }
         }
-        return "Just now"
+        .frame(height: 120) // Fixed height for consistency
+        .aspectRatio(16/9, contentMode: .fit)
+    }
+    
+    private var imagePlaceholder: some View {
+        Rectangle()
+            .fill(Color(.systemGray5))
+            .overlay(
+                Image(systemName: "photo")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            )
+    }
+    
+    private var timeAgoString: String {
+        return article.timeAgo
     }
     
     private var primaryTextColor: Color {
@@ -134,12 +154,7 @@ struct NewsCardView: View {
     }
     
     // MARK: - Helper Methods
-    
-    private func parseDate(from dateString: String) -> Date? {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss Z"
-        return formatter.date(from: dateString)
-    }
+    // Sentiment analysis removed for better performance
 }
 
 // MARK: - Category Badge Component
@@ -204,22 +219,19 @@ struct BookmarkButton: View {
     ScrollView {
         LazyVStack(spacing: 20) {
             NewsCardView(
-                article: CachedArticle(
-                    rssItem: RSSItem(
-                        title: "Estonia Leads Digital Innovation in Baltics",
-                        link: "https://example.com",
-                        description: "Estonia continues to be a pioneer in digital transformation, setting new standards for e-governance and digital services across the Baltic region.",
-                        pubDate: "Mon, 24 Aug 2025 10:00:00 +0000",
-                        category: "Technology",
-                        imageURL: nil
-                    ),
+                article: Article(
+                    id: UUID(),
+                    title: "Estonia Leads Digital Innovation in Baltics",
+                    content: "Estonia continues to be a pioneer in digital transformation, setting new standards for e-governance and digital services across the Baltic region.",
                     summary: "Estonia's digital leadership in the Baltic region continues to grow with new initiatives in e-governance and digital services.",
-                    translatedTitle: nil,
-                    translatedSummary: nil,
-                    cachedAt: Date(),
+                    author: "Tech Reporter",
+                    publishedAt: "Mon, 24 Aug 2025 10:00:00 +0000",
+                    imageURL: nil,
+                    category: "Technology",
                     source: "ERR.ee",
                     region: "Estonia",
-                    language: "Estonian"
+                    language: "en",
+                    link: "https://example.com"
                 ),
                 isBookmarked: .constant(false),
                 onTap: {},
@@ -235,22 +247,19 @@ struct BookmarkButton: View {
     ScrollView {
         LazyVStack(spacing: 20) {
             NewsCardView(
-                article: CachedArticle(
-                    rssItem: RSSItem(
-                        title: "Nordic Council Meeting Discusses Climate Policy",
-                        link: "https://example.com",
-                        description: "The Nordic Council held an important meeting about climate change policies and sustainable development goals for the region.",
-                        pubDate: "Mon, 24 Aug 2025 09:30:00 +0000",
-                        category: "Politics",
-                        imageURL: nil
-                    ),
+                article: Article(
+                    id: UUID(),
+                    title: "Nordic Council Meeting Discusses Climate Policy",
+                    content: "The Nordic Council held an important meeting about climate change policies and sustainable development goals for the region.",
                     summary: "Nordic countries align on new climate initiatives and sustainable development goals.",
-                    translatedTitle: nil,
-                    translatedSummary: nil,
-                    cachedAt: Date(),
+                    author: "Political Correspondent",
+                    publishedAt: "Mon, 24 Aug 2025 10:00:00 +0000",
+                    imageURL: nil,
+                    category: "Politics",
                     source: "Postimees.ee",
                     region: "Estonia",
-                    language: "Estonian"
+                    language: "en",
+                    link: "https://example.com"
                 ),
                 isBookmarked: .constant(true),
                 onTap: {},

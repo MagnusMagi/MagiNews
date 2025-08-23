@@ -6,19 +6,18 @@
 //
 
 import Foundation
-import Combine
+import SwiftUI
 
 // MARK: - OpenAI API Models
 struct OpenAIRequest: Codable {
     let model: String
     let messages: [OpenAIMessage]
-    let maxTokens: Int
     let temperature: Double
+    let maxTokens: Int
     
     enum CodingKeys: String, CodingKey {
-        case model, messages
+        case model, messages, temperature
         case maxTokens = "max_tokens"
-        case temperature
     }
 }
 
@@ -34,215 +33,285 @@ struct OpenAIResponse: Codable {
 
 struct OpenAIChoice: Codable {
     let message: OpenAIMessage
-    let finishReason: String
-    
-    enum CodingKeys: String, CodingKey {
-        case message
-        case finishReason = "finish_reason"
-    }
 }
 
 struct OpenAIUsage: Codable {
-    let promptTokens: Int
-    let completionTokens: Int
     let totalTokens: Int
     
     enum CodingKeys: String, CodingKey {
-        case promptTokens = "prompt_tokens"
-        case completionTokens = "completion_tokens"
         case totalTokens = "total_tokens"
     }
 }
 
 // MARK: - Summarization Service
+@MainActor
 class SummarizationService: ObservableObject {
-    @Published var isSummarizing = false
+    @Published var isProcessing = false
     @Published var errorMessage: String?
     
-    private let apiKey: String
     private let baseURL = "https://api.openai.com/v1/chat/completions"
+    private let model = "gpt-4"
+    private let temperature = 0.7
+    private let maxTokens = 150
     
-    // Cache for summaries and translations to reduce API usage
+    // Cache for AI responses to reduce API usage
     private let cache = NSCache<NSString, NSString>()
     
     init() {
-        // In production, load from secure storage or environment variables
-        // For development, set your OpenAI API key here
-        self.apiKey = "YOUR_OPENAI_API_KEY_HERE"
-        
         // Set cache limits
         cache.countLimit = 100
         cache.totalCostLimit = 50 * 1024 * 1024 // 50MB
     }
     
-    func summarizeArticle(_ content: String, language: String = "English") async throws -> String {
+    // MARK: - Article Summarization
+    func summarizeArticle(_ content: String, language: String = "en") async -> String? {
+        let cacheKey = "summary_\(content.hash)_\(language)" as NSString
+        
         // Check cache first
-        let cacheKey = "\(content.hash)_\(language)".description
-        if let cachedSummary = cache.object(forKey: cacheKey as NSString) {
-            return String(cachedSummary)
+        if let cachedSummary = cache.object(forKey: cacheKey) {
+            return cachedSummary as String
         }
         
-        isSummarizing = true
+        isProcessing = true
         errorMessage = nil
         
-        defer { isSummarizing = false }
+        defer { isProcessing = false }
         
-        let prompt = createSummarizationPrompt(content: content, language: language)
-        let request = OpenAIRequest(
-            model: "gpt-3.5-turbo",
-            messages: [OpenAIMessage(role: "user", content: prompt)],
-            maxTokens: 150,
-            temperature: 0.7
-        )
-        
-        let summary = try await performOpenAIRequest(request)
-        
-        // Cache the summary
-        cache.setObject(summary as NSString, forKey: cacheKey as NSString)
-        
-        return summary
+        do {
+            let prompt = createSummaryPrompt(content: content, language: language)
+            let summary = try await makeOpenAIRequest(prompt: prompt)
+            
+            // Cache the result
+            if let summary = summary {
+                cache.setObject(summary as NSString, forKey: cacheKey)
+            }
+            
+            return summary
+        } catch {
+            errorMessage = "Summarization failed: \(error.localizedDescription)"
+            return nil
+        }
     }
     
-    func translateArticle(_ content: String, from sourceLanguage: String, to targetLanguage: String) async throws -> String {
+    // MARK: - Daily Digest Generation
+    func generateDailyDigest(from articles: [Article], language: String = "en") async -> String? {
+        let cacheKey = "digest_\(articles.map { $0.title }.joined().hash)_\(language)" as NSString
+        
         // Check cache first
-        let cacheKey = "\(content.hash)_\(sourceLanguage)_\(targetLanguage)".description
-        if let cachedTranslation = cache.object(forKey: cacheKey as NSString) {
-            return String(cachedTranslation)
+        if let cachedDigest = cache.object(forKey: cacheKey) {
+            return cachedDigest as String
         }
         
-        isSummarizing = true
+        isProcessing = true
         errorMessage = nil
         
-        defer { isSummarizing = false }
+        defer { isProcessing = false }
         
-        let prompt = createTranslationPrompt(content: content, from: sourceLanguage, to: targetLanguage)
-        let request = OpenAIRequest(
-            model: "gpt-3.5-turbo",
-            messages: [OpenAIMessage(role: "user", content: prompt)],
-            maxTokens: 500,
-            temperature: 0.3
-        )
-        
-        let translation = try await performOpenAIRequest(request)
-        
-        // Cache the translation
-        cache.setObject(translation as NSString, forKey: cacheKey as NSString)
-        
-        return translation
+        do {
+            let prompt = createDigestPrompt(articles: articles, language: language)
+            let digest = try await makeOpenAIRequest(prompt: prompt)
+            
+            // Cache the result
+            if let digest = digest {
+                cache.setObject(digest as NSString, forKey: cacheKey)
+            }
+            
+            return digest
+        } catch {
+            errorMessage = "Daily digest generation failed: \(error.localizedDescription)"
+            return nil
+        }
     }
     
-    func generateDailyDigest(_ articles: [RSSItem]) async throws -> String {
-        // Check cache first - use articles hash as cache key
-        let articlesHash = articles.map { $0.title + $0.description }.joined().hash
-        let cacheKey = "digest_\(articlesHash)".description
-        if let cachedDigest = cache.object(forKey: cacheKey as NSString) {
-            return String(cachedDigest)
+    // MARK: - Translation
+    func translateArticle(_ content: String, to targetLanguage: String) async -> String? {
+        let cacheKey = "translation_\(content.hash)_\(targetLanguage)" as NSString
+        
+        // Check cache first
+        if let cachedTranslation = cache.object(forKey: cacheKey) {
+            return cachedTranslation as String
         }
         
-        isSummarizing = true
+        isProcessing = true
         errorMessage = nil
         
-        defer { isSummarizing = false }
+        defer { isProcessing = false }
         
-        let prompt = createDigestPrompt(articles: articles)
-        let request = OpenAIRequest(
-            model: "gpt-3.5-turbo",
-            messages: [OpenAIMessage(role: "user", content: prompt)],
-            maxTokens: 300,
-            temperature: 0.7
-        )
-        
-        let digest = try await performOpenAIRequest(request)
-        
-        // Cache the digest
-        cache.setObject(digest as NSString, forKey: cacheKey as NSString)
-        
-        return digest
+        do {
+            let prompt = createTranslationPrompt(content: content, targetLanguage: targetLanguage)
+            let translation = try await makeOpenAIRequest(prompt: prompt)
+            
+            // Cache the result
+            if let translation = translation {
+                cache.setObject(translation as NSString, forKey: cacheKey)
+            }
+            
+            return translation
+        } catch {
+            errorMessage = "Translation failed: \(error.localizedDescription)"
+            return nil
+        }
     }
     
-    private func performOpenAIRequest(_ request: OpenAIRequest) async throws -> String {
-        guard let url = URL(string: baseURL) else {
-            throw SummarizationError.invalidURL
+    // MARK: - Sentiment Analysis
+    func analyzeSentiment(title: String, summary: String) async -> SentimentResult? {
+        let cacheKey = "sentiment_\(title.hash)_\(summary.hash)" as NSString
+        
+        // Check cache first
+        if let cachedResult = cache.object(forKey: cacheKey) {
+            return SentimentResult(rawValue: cachedResult as String) ?? .neutral
         }
         
-        var urlRequest = URLRequest(url: url)
+        isProcessing = true
+        errorMessage = nil
+        
+        defer { isProcessing = false }
+        
+        do {
+            let prompt = createSentimentPrompt(title: title, summary: summary)
+            let result = try await makeOpenAIRequest(prompt: prompt)
+            
+            if let result = result {
+                let sentiment = parseSentimentResult(result)
+                // Cache the result
+                cache.setObject(sentiment.rawValue as NSString, forKey: cacheKey)
+                return sentiment
+            }
+            
+            return nil
+        } catch {
+            errorMessage = "Sentiment analysis failed: \(error.localizedDescription)"
+            return nil
+        }
+    }
+    
+    // MARK: - Private Methods
+    private func makeOpenAIRequest(prompt: String) async throws -> String? {
+        guard let apiKey = getOpenAIAPIKey() else {
+            throw SummarizationError.missingAPIKey
+        }
+        
+        let request = OpenAIRequest(
+            model: model,
+            messages: [OpenAIMessage(role: "user", content: prompt)],
+            temperature: temperature,
+            maxTokens: maxTokens
+        )
+        
+        var urlRequest = URLRequest(url: URL(string: baseURL)!)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        do {
-            let jsonData = try JSONEncoder().encode(request)
-            urlRequest.httpBody = jsonData
-            
-            let (data, response) = try await URLSession.shared.data(for: urlRequest)
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw SummarizationError.invalidResponse
-            }
-            
-            if httpResponse.statusCode != 200 {
-                throw SummarizationError.apiError(statusCode: httpResponse.statusCode)
-            }
-            
-            let openAIResponse = try JSONDecoder().decode(OpenAIResponse.self, from: data)
-            
-            guard let firstChoice = openAIResponse.choices.first else {
-                throw SummarizationError.noContent
-            }
-            
-            return firstChoice.message.content.trimmingCharacters(in: .whitespacesAndNewlines)
-            
-        } catch {
-            if let openAIError = error as? SummarizationError {
-                throw openAIError
-            }
-            throw SummarizationError.networkError(error.localizedDescription)
+        let jsonData = try JSONEncoder().encode(request)
+        urlRequest.httpBody = jsonData
+        
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SummarizationError.invalidResponse
         }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw SummarizationError.apiError(statusCode: httpResponse.statusCode)
+        }
+        
+        let openAIResponse = try JSONDecoder().decode(OpenAIResponse.self, from: data)
+        return openAIResponse.choices.first?.message.content
     }
     
-    private func createSummarizationPrompt(content: String, language: String) -> String {
+    private func createSummaryPrompt(content: String, language: String) -> String {
+        let languageName = getLanguageDisplayName(language)
         return """
-        Summarize the following news article in \(language). 
-        Provide a concise, informative summary in 2-3 sentences.
+        Summarize the following news article in \(languageName). 
+        Provide a concise, informative summary in 1-2 sentences (maximum 100 words).
         Focus on the key facts and main points.
         
         Article content:
         \(content)
         
-        Summary:
+        Summary in \(languageName):
         """
     }
     
-    private func createTranslationPrompt(content: String, from sourceLanguage: String, to targetLanguage: String) -> String {
+    private func createDigestPrompt(articles: [Article], language: String) -> String {
+        let languageName = getLanguageDisplayName(language)
+        let articleTitles = articles.prefix(5).map { "- \($0.title)" }.joined(separator: "\n")
+        
         return """
-        Translate the following text from \(sourceLanguage) to \(targetLanguage).
-        Maintain the original meaning and tone.
-        If this is a news article, ensure journalistic style is preserved.
+        Create a daily news digest in \(languageName) based on these top headlines.
+        Provide a brief overview of each story in 1 sentence, then a 2-3 sentence summary of the most important story.
+        Keep the total digest under 200 words.
+        
+        Headlines:
+        \(articleTitles)
+        
+        Daily Digest in \(languageName):
+        """
+    }
+    
+    private func createTranslationPrompt(content: String, targetLanguage: String) -> String {
+        let languageName = getLanguageDisplayName(targetLanguage)
+        return """
+        Translate the following text to \(languageName). 
+        Maintain the original meaning and tone. If this is news content, ensure proper journalistic language.
         
         Text to translate:
         \(content)
         
-        Translation:
+        Translation in \(languageName):
         """
     }
     
-    private func createDigestPrompt(articles: [RSSItem]) -> String {
-        let articleTitles = articles.prefix(5).map { "- \($0.title)" }.joined(separator: "\n")
-        
+    private func createSentimentPrompt(title: String, summary: String) -> String {
         return """
-        Create a daily news digest summary based on these article titles.
-        Provide a brief overview of the main stories in 3-4 sentences.
-        Focus on the most important developments and trends.
+        Analyze the sentiment of this news article. 
+        Respond with ONLY one word: "positive", "negative", or "neutral".
         
-        Articles:
-        \(articleTitles)
+        Title: \(title)
+        Summary: \(summary)
         
-        Daily Digest Summary:
+        Sentiment:
         """
+    }
+    
+    private func parseSentimentResult(_ result: String) -> SentimentResult {
+        let cleanResult = result.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        
+        if cleanResult.contains("positive") {
+            return .positive
+        } else if cleanResult.contains("negative") {
+            return .negative
+        } else {
+            return .neutral
+        }
+    }
+    
+    private func getLanguageDisplayName(_ languageCode: String) -> String {
+        switch languageCode {
+        case "et": return "Estonian"
+        case "lv": return "Latvian"
+        case "lt": return "Lithuanian"
+        case "fi": return "Finnish"
+        default: return "English"
+        }
+    }
+    
+    private func getOpenAIAPIKey() -> String? {
+        // In production, load from secure storage or environment variables
+        // For development, check if user has set their API key
+        let userDefaultsKey = "openai_api_key"
+        let savedKey = UserDefaults.standard.string(forKey: userDefaultsKey)
+        
+        if let savedKey = savedKey, !savedKey.isEmpty {
+            return savedKey
+        }
+        
+        // Fallback to placeholder (user needs to set this)
+        return nil
     }
     
     // MARK: - Cache Management
-    
     func clearCache() {
         cache.removeAllObjects()
     }
@@ -256,65 +325,42 @@ class SummarizationService: ObservableObject {
     }
 }
 
-// MARK: - Summarization Errors
-enum SummarizationError: LocalizedError {
-    case invalidURL
-    case invalidResponse
-    case apiError(statusCode: Int)
-    case noContent
-    case networkError(String)
+// MARK: - Supporting Types
+enum SentimentResult: String, CaseIterable {
+    case positive = "positive"
+    case negative = "negative"
+    case neutral = "neutral"
     
-    var errorDescription: String? {
+    var emoji: String {
         switch self {
-        case .invalidURL:
-            return "Invalid API URL"
-        case .invalidResponse:
-            return "Invalid response from API"
-        case .apiError(let statusCode):
-            return "API error with status code: \(statusCode)"
-        case .noContent:
-            return "No content received from API"
-        case .networkError(let message):
-            return "Network error: \(message)"
+        case .positive: return "😊"
+        case .negative: return "😔"
+        case .neutral: return "😐"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .positive: return .green
+        case .negative: return .red
+        case .neutral: return .gray
         }
     }
 }
 
-// MARK: - Language Support
-enum SupportedLanguage: String, CaseIterable {
-    case english = "en"
-    case estonian = "et"
-    case latvian = "lv"
-    case lithuanian = "lt"
-    case finnish = "fi"
+enum SummarizationError: LocalizedError {
+    case missingAPIKey
+    case invalidResponse
+    case apiError(statusCode: Int)
     
-    var displayName: String {
+    var errorDescription: String? {
         switch self {
-        case .english:
-            return "English"
-        case .estonian:
-            return "Eesti"
-        case .latvian:
-            return "Latviešu"
-        case .lithuanian:
-            return "Lietuvių"
-        case .finnish:
-            return "Suomi"
-        }
-    }
-    
-    var flag: String {
-        switch self {
-        case .english:
-            return "🇺🇸"
-        case .estonian:
-            return "🇪🇪"
-        case .latvian:
-            return "🇱🇻"
-        case .lithuanian:
-            return "🇱🇹"
-        case .finnish:
-            return "🇫🇮"
+        case .missingAPIKey:
+            return "OpenAI API key not configured. Please set your API key in the app settings."
+        case .invalidResponse:
+            return "Invalid response from OpenAI API"
+        case .apiError(let statusCode):
+            return "API error with status code: \(statusCode)"
         }
     }
 }

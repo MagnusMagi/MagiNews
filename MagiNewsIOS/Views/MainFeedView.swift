@@ -45,26 +45,7 @@ struct MainFeedView: View {
             }
         }
         .sheet(isPresented: $showingDailyDigest) {
-            DailyDigestView(articles: newsRepository.getDailyDigest().map { article in
-                CachedArticle(
-                    id: article.id,
-                    rssItem: RSSItem(
-                        title: article.title,
-                        link: article.link,
-                        description: article.content,
-                        pubDate: article.publishedAt,
-                        category: article.category,
-                        imageURL: article.imageURL
-                    ),
-                    summary: article.summary,
-                    translatedTitle: nil,
-                    translatedSummary: nil,
-                    cachedAt: Date(),
-                    source: article.source,
-                    region: article.region,
-                    language: article.language
-                )
-            })
+            DailyDigestView(articles: newsRepository.getDailyDigest())
         }
         .onAppear {
             loadInitialData()
@@ -165,7 +146,7 @@ struct MainFeedView: View {
                 content: {
                     ForEach(filteredArticles) { article in
                         NewsCardView(
-                            article: convertToCache(article),
+                            article: article,
                             isBookmarked: .constant(bookmarkManager.isBookmarked(article.id)),
                             onTap: {
                                 // Navigate to article detail
