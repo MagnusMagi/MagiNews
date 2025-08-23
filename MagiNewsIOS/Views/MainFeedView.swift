@@ -8,8 +8,7 @@
 import SwiftUI
 
 struct MainFeedView: View {
-    @StateObject private var rssService = RSSService()
-    @StateObject private var offlineCache = OfflineCache()
+    @StateObject private var newsRepository = NewsRepository()
     @StateObject private var bookmarkManager = BookmarkManager()
     
     @State private var selectedCategory: String = "All"
@@ -46,7 +45,26 @@ struct MainFeedView: View {
             }
         }
         .sheet(isPresented: $showingDailyDigest) {
-            DailyDigestView(articles: offlineCache.cachedArticles)
+            DailyDigestView(articles: newsRepository.getDailyDigest().map { article in
+                CachedArticle(
+                    id: article.id,
+                    rssItem: RSSItem(
+                        title: article.title,
+                        link: article.link,
+                        description: article.content,
+                        pubDate: article.publishedAt,
+                        category: article.category,
+                        imageURL: article.imageURL
+                    ),
+                    summary: article.summary,
+                    translatedTitle: nil,
+                    translatedSummary: nil,
+                    cachedAt: Date(),
+                    source: article.source,
+                    region: article.region,
+                    language: article.language
+                )
+            })
         }
         .onAppear {
             loadInitialData()
@@ -147,7 +165,7 @@ struct MainFeedView: View {
                 content: {
                     ForEach(filteredArticles) { article in
                         NewsCardView(
-                            article: article,
+                            article: convertToCache(article),
                             isBookmarked: .constant(bookmarkManager.isBookmarked(article.id)),
                             onTap: {
                                 // Navigate to article detail
@@ -250,26 +268,29 @@ struct MainFeedView: View {
         }
     }
     
-    private var filteredArticles: [CachedArticle] {
-        var articles = offlineCache.cachedArticles
+    private var filteredArticles: [Article] {
+        var articles = newsRepository.articles
         
         // Filter by category
         if selectedCategory != "All" {
             articles = articles.filter { article in
-                article.rssItem.category?.lowercased().contains(selectedCategory.lowercased()) == true
+                article.category.lowercased().contains(selectedCategory.lowercased())
             }
         }
         
         // Filter by search text
         if !searchText.isEmpty {
             articles = articles.filter { article in
-                article.rssItem.title.localizedCaseInsensitiveContains(searchText) ||
-                article.rssItem.description.localizedCaseInsensitiveContains(searchText) ||
-                (article.summary?.localizedCaseInsensitiveContains(searchText) == true)
+                article.title.localizedCaseInsensitiveContains(searchText) ||
+                article.content.localizedCaseInsensitiveContains(searchText) ||
+                article.summary.localizedCaseInsensitiveContains(searchText)
             }
         }
         
-        return articles
+        return articles.sorted { 
+            parseDate(from: $0.publishedAt) ?? Date.distantPast > 
+            parseDate(from: $1.publishedAt) ?? Date.distantPast 
+        }
     }
     
     private var backgroundColor: Color {
@@ -283,38 +304,56 @@ struct MainFeedView: View {
     // MARK: - Data Loading Methods
     
     private func loadInitialData() {
-        isLoading = true
-        
         Task {
-            do {
-                try await rssService.fetchAllFeeds()
-                await MainActor.run {
-                    isLoading = false
-                }
-            } catch {
-                await MainActor.run {
-                    isLoading = false
-                }
-            }
+            await newsRepository.loadArticles()
         }
     }
     
     private func refreshData() async {
-        await MainActor.run {
-            isLoading = true
+        await newsRepository.refreshAllFeeds()
+        refreshTrigger = UUID()
+    }
+    
+    private func parseDate(from dateString: String) -> Date? {
+        let formatter = DateFormatter()
+        
+        // Try common RSS date formats
+        let formats = [
+            "EEE, dd MMM yyyy HH:mm:ss Z",
+            "yyyy-MM-dd'T'HH:mm:ssZ",
+            "yyyy-MM-dd HH:mm:ss",
+            "dd MMM yyyy HH:mm:ss Z"
+        ]
+        
+        for format in formats {
+            formatter.dateFormat = format
+            if let date = formatter.date(from: dateString) {
+                return date
+            }
         }
         
-        do {
-            try await rssService.fetchAllFeeds()
-            await MainActor.run {
-                isLoading = false
-                refreshTrigger = UUID()
-            }
-        } catch {
-            await MainActor.run {
-                isLoading = false
-            }
-        }
+        return nil
+    }
+    
+    private func convertToCache(_ article: Article) -> CachedArticle {
+        CachedArticle(
+            id: article.id,
+            rssItem: RSSItem(
+                title: article.title,
+                link: article.link,
+                description: article.content,
+                pubDate: article.publishedAt,
+                category: article.category,
+                imageURL: article.imageURL
+            ),
+            summary: article.summary,
+            translatedTitle: nil,
+            translatedSummary: nil,
+            cachedAt: Date(),
+            source: article.source,
+            region: article.region,
+            language: article.language
+        )
     }
 }
 

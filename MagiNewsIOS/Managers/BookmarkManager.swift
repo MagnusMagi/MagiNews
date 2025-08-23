@@ -32,11 +32,6 @@ class BookmarkManager: ObservableObject {
         bookmarkedArticles.contains(articleId)
     }
     
-    func addBookmark(for articleId: UUID) {
-        bookmarkedArticles.insert(articleId)
-        saveBookmarks()
-    }
-    
     func removeBookmark(for articleId: UUID) {
         bookmarkedArticles.remove(articleId)
         saveBookmarks()
@@ -44,6 +39,11 @@ class BookmarkManager: ObservableObject {
     
     func clearAllBookmarks() {
         bookmarkedArticles.removeAll()
+        saveBookmarks()
+    }
+    
+    func addBookmark(for articleId: UUID) {
+        bookmarkedArticles.insert(articleId)
         saveBookmarks()
     }
     

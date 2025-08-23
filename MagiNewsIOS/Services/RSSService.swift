@@ -20,17 +20,17 @@ enum RSSFeedSource: String, CaseIterable {
     var url: String {
         switch self {
         case .errEe:
-            return "https://feeds.err.ee/rss/err_news"
+            return "https://news.err.ee/rss"
         case .postimeesEe:
-            return "https://feeds.postimees.ee/rss/pealinn"
+            return "https://news.postimees.ee/rss"
         case .delfiEe:
-            return "https://feeds.delfi.ee/rss/delfi_news"
+            return "https://www.delfi.ee/rss"
         case .lsmLv:
-            return "https://feeds.lsm.lv/rss/latvia"
+            return "https://www.lsm.lv/rss/"
         case .lrtLt:
-            return "https://feeds.lrt.lt/rss/lithuania"
+            return "https://www.lrt.lt/static/rss/eng.rss"
         case .yleFi:
-            return "https://feeds.yle.fi/rss/yle_news"
+            return "https://yle.fi/uutiset/osasto/news/rss"
         }
     }
     
@@ -159,6 +159,15 @@ class RSSService: ObservableObject {
     }
     
     private func fetchFeed(from source: RSSFeedSource) -> AnyPublisher<RSSFeed?, Error> {
+        // First try direct RSS parsing, fallback to RSS2JSON proxy
+        return fetchDirectRSS(from: source)
+            .catch { _ in
+                self.fetchViaProxy(from: source)
+            }
+            .eraseToAnyPublisher()
+    }
+    
+    private func fetchDirectRSS(from source: RSSFeedSource) -> AnyPublisher<RSSFeed?, Error> {
         guard let url = URL(string: source.url) else {
             return Fail(error: RSSError.invalidURL)
                 .eraseToAnyPublisher()
@@ -170,7 +179,29 @@ class RSSService: ObservableObject {
                 try self.parseRSSFeed(from: data, source: source)
             }
             .catch { error -> AnyPublisher<RSSFeed?, Error> in
-                print("Error fetching feed from \(source.url): \(error)")
+                print("Direct RSS failed for \(source.url): \(error)")
+                return Fail(error: error)
+                    .eraseToAnyPublisher()
+            }
+            .eraseToAnyPublisher()
+    }
+    
+    private func fetchViaProxy(from source: RSSFeedSource) -> AnyPublisher<RSSFeed?, Error> {
+        let encodedURL = source.url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let proxyURL = "https://api.rss2json.com/v1/api.json?rss_url=\(encodedURL)"
+        
+        guard let url = URL(string: proxyURL) else {
+            return Fail(error: RSSError.invalidURL)
+                .eraseToAnyPublisher()
+        }
+        
+        return URLSession.shared.dataTaskPublisher(for: url)
+            .map(\.data)
+            .tryMap { data in
+                try self.parseProxyResponse(from: data, source: source)
+            }
+            .catch { error -> AnyPublisher<RSSFeed?, Error> in
+                print("Proxy RSS failed for \(source.url): \(error)")
                 return Just(nil)
                     .setFailureType(to: Error.self)
                     .eraseToAnyPublisher()
@@ -285,6 +316,71 @@ class RSSService: ObservableObject {
         
         return nil
     }
+    
+    // MARK: - RSS2JSON Proxy Response Parser
+    private func parseProxyResponse(from data: Data, source: RSSFeedSource) throws -> RSSFeed {
+        let decoder = JSONDecoder()
+        let proxyResponse = try decoder.decode(RSS2JSONResponse.self, from: data)
+        
+        guard proxyResponse.status == "ok" else {
+            throw RSSError.parsingError
+        }
+        
+        let items = proxyResponse.items.map { item in
+            RSSItem(
+                title: item.title,
+                link: item.link,
+                description: item.description,
+                pubDate: item.pubDate,
+                category: item.categories.first,
+                imageURL: item.enclosure?.link
+            )
+        }
+        
+        return RSSFeed(
+            title: proxyResponse.feed.title,
+            link: proxyResponse.feed.url,
+            description: proxyResponse.feed.description,
+            language: source.language,
+            lastBuildDate: "",
+            items: items
+        )
+    }
+}
+
+// MARK: - RSS2JSON Response Models
+struct RSS2JSONResponse: Codable {
+    let status: String
+    let feed: RSS2JSONFeed
+    let items: [RSS2JSONItem]
+}
+
+struct RSS2JSONFeed: Codable {
+    let url: String
+    let title: String
+    let link: String
+    let author: String
+    let description: String
+    let image: String
+}
+
+struct RSS2JSONItem: Codable {
+    let title: String
+    let pubDate: String
+    let link: String
+    let guid: String
+    let author: String
+    let thumbnail: String
+    let description: String
+    let content: String
+    let enclosure: RSS2JSONEnclosure?
+    let categories: [String]
+}
+
+struct RSS2JSONEnclosure: Codable {
+    let link: String
+    let type: String
+    let length: String?
 }
 
 // MARK: - RSS Errors

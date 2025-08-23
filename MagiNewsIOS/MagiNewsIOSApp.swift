@@ -28,7 +28,7 @@ struct MagiNewsIOSApp: App {
     var body: some Scene {
         WindowGroup {
             TabView {
-                MainFeedView()
+                HomeView()
                     .tabItem {
                         Image(systemName: "newspaper")
                         Text("News")
@@ -36,7 +36,7 @@ struct MagiNewsIOSApp: App {
                 
                 BookmarksView()
                     .tabItem {
-                        Image(systemName: "bookmark")
+                        Image(systemName: "bookmark.fill")
                         Text("Bookmarks")
                     }
                 
@@ -52,28 +52,7 @@ struct MagiNewsIOSApp: App {
     }
 }
 
-// MARK: - Placeholder Views (to be implemented)
-struct BookmarksView: View {
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                Image(systemName: "bookmark")
-                    .font(.system(size: 48))
-                    .foregroundColor(.blue)
-                
-                Text("Bookmarks")
-                    .font(.title)
-                    .fontWeight(.bold)
-                
-                Text("Your saved articles will appear here")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .navigationTitle("Bookmarks")
-        }
-    }
-}
+// MARK: - Settings View
 
 struct SettingsView: View {
     @AppStorage("language") private var selectedLanguage = "en"
@@ -158,7 +137,7 @@ struct SettingsView: View {
 struct ContentView: View {
     var body: some View {
         TabView {
-            MainFeedView()
+            HomeView()
                 .tabItem {
                     Image(systemName: "newspaper")
                     Text("News")

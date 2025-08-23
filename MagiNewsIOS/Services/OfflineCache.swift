@@ -128,6 +128,18 @@ class OfflineCache: ObservableObject {
         saveCachedData()
     }
     
+    func cacheArticle(_ article: CachedArticle) {
+        // Check if article already exists
+        if let existingIndex = cachedArticles.firstIndex(where: { $0.id == article.id }) {
+            cachedArticles[existingIndex] = article
+        } else {
+            cachedArticles.append(article)
+        }
+        
+        updateCacheMetadata()
+        saveCachedData()
+    }
+    
     // MARK: - Cache Queries
     func getArticles(for category: FeedCategory?) -> [CachedArticle] {
         if let category = category {
