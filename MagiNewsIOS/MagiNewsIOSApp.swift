@@ -28,7 +28,7 @@ struct MagiNewsIOSApp: App {
     var body: some Scene {
         WindowGroup {
             TabView {
-                FeedView()
+                MainFeedView()
                     .tabItem {
                         Image(systemName: "newspaper")
                         Text("News")
@@ -120,7 +120,7 @@ struct SettingsView: View {
 
 #Preview("TabView") {
     TabView {
-        FeedView()
+        MainFeedView()
             .tabItem {
                 Image(systemName: "newspaper")
                 Text("News")
@@ -158,7 +158,7 @@ struct SettingsView: View {
 struct ContentView: View {
     var body: some View {
         TabView {
-            FeedView()
+            MainFeedView()
                 .tabItem {
                     Image(systemName: "newspaper")
                     Text("News")

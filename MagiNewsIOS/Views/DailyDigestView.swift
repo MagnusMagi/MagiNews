@@ -14,6 +14,8 @@ struct DailyDigestView: View {
     @State private var isGenerating = false
     @State private var errorMessage: String?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     var body: some View {
         NavigationView {
