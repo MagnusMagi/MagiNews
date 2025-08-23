@@ -10,6 +10,16 @@
 
 ## 📋 Versiyon Geçmişi
 
+### v0.2.0 - Core Features Release
+- ✅ Tam haber uygulama yapısı
+- ✅ NewsArticle, NewsCategory, UserPreferences modelleri
+- ✅ HomeView ile ana ekran tasarımı
+- ✅ NewsRowView ile haber listesi görünümü
+- ✅ NewsDetailView ile detaylı haber okuma
+- ✅ Kategori filtreleme ve arama sistemi
+- ✅ Modern SwiftUI tasarım desenleri
+- ✅ Kapsamlı README dokümantasyonu
+
 ### v0.1.0 - Initial Release
 - ✅ Temel Xcode proje yapısı
 - ✅ iOS uygulama iskeleti
@@ -18,21 +28,23 @@
 
 ## 🚀 Gelecek Versiyonlar
 
-### v0.2.0 - Core Features
-- [ ] Ana ekran tasarımı
-- [ ] Haber listesi görünümü
-- [ ] Temel navigasyon
-
-### v0.3.0 - Data Layer
+### v0.3.0 - Data Layer & API
 - [ ] API entegrasyonu
-- [ ] Veri modelleri
-- [ ] Cache sistemi
+- [ ] Offline cache sistemi
+- [ ] Veri senkronizasyonu
+- [ ] Error handling
+
+### v0.4.0 - Enhanced Features
+- [ ] Kullanıcı tercihleri
+- [ ] Dark mode desteği
+- [ ] Push bildirimleri
+- [ ] Sosyal paylaşım
 
 ### v1.0.0 - Production Ready
-- [ ] Tam özellik seti
-- [ ] Hata yönetimi
+- [ ] App Store optimizasyonu
+- [ ] Analytics entegrasyonu
+- [ ] Crash reporting
 - [ ] Performance optimizasyonu
-- [ ] App Store hazırlığı
 
 ## 📝 Commit Mesaj Standartları
 
@@ -74,7 +86,7 @@ git tag -l
 git log --oneline -10
 
 # Belirli tag'den sonraki değişiklikleri görüntüle
-git log v0.1.0..HEAD --oneline
+git log v0.2.0..HEAD --oneline
 
 # Tag'leri GitHub'a push et
 git push origin --tags
