@@ -285,7 +285,7 @@ struct CategoryFilterButton: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(isSelected ? Color(hex: category.color) : Color(.systemGray5))
+            .background(isSelected ? .blue : Color(.systemGray5))
             .foregroundColor(isSelected ? .white : .primary)
             .cornerRadius(20)
         }

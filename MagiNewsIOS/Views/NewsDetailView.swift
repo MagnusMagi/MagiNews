@@ -204,17 +204,17 @@ struct NewsDetailView: View {
     private var categoryColor: Color {
         switch article.category {
         case "Technology":
-            return Color(hex: "#FF6B6B")
+            return .red
         case "Business":
-            return Color(hex: "#4ECDC4")
+            return .green
         case "Sports":
-            return Color(hex: "#45B7D1")
+            return .blue
         case "Entertainment":
-            return Color(hex: "#96CEB4")
+            return .purple
         case "Science":
-            return Color(hex: "#FFEAA7")
+            return .orange
         default:
-            return Color.blue
+            return .gray
         }
     }
     

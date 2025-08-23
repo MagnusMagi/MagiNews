@@ -281,17 +281,17 @@ struct ArticleDetailView: View {
     private func categoryColor(for category: String) -> Color {
         switch category.lowercased() {
         case let cat where cat.contains("politics"):
-            return Color(hex: "#FF6B6B")
+            return .red
         case let cat where cat.contains("economy") || cat.contains("business"):
-            return Color(hex: "#4ECDC4")
+            return .green
         case let cat where cat.contains("culture"):
-            return Color(hex: "#45B7D1")
+            return .blue
         case let cat where cat.contains("technology"):
-            return Color(hex: "#96CEB4")
+            return .purple
         case let cat where cat.contains("sports"):
-            return Color(hex: "#FFEAA7")
+            return .orange
         default:
-            return Color.blue
+            return .gray
         }
     }
     
