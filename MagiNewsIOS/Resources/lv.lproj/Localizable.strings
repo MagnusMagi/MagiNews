@@ -1,0 +1,55 @@
+/* Common */
+"ok" = "OK";
+"cancel" = "Atcelt";
+"done" = "Gatavs";
+"save" = "Saglabāt";
+"delete" = "Dzēst";
+"edit" = "Rediģēt";
+"search" = "Meklēt";
+"loading" = "Ielāde...";
+"error" = "Kļūda";
+"retry" = "Mēģināt vēlreiz";
+
+/* Navigation */
+"news" = "Ziņas";
+"bookmarks" = "Grāmatzīmes";
+"profile" = "Profils";
+"settings" = "Iestatījumi";
+
+/* Categories */
+"all" = "Visi";
+"politics" = "Politika";
+"economy" = "Ekonomika";
+"culture" = "Kultūra";
+"technology" = "Tehnoloģija";
+"sports" = "Sports";
+"health" = "Veselība";
+
+/* Countries */
+"estonia" = "Igaunija";
+"latvia" = "Latvija";
+"lithuania" = "Lietuva";
+"finland" = "Somija";
+
+/* Actions */
+"bookmark" = "Pievienot grāmatzīmēm";
+"share" = "Dalīties";
+"read_more" = "Lasīt vairāk";
+"daily_digest" = "Dienas kopsavilkums";
+"ai_summary" = "AI kopsavilkums";
+"translate" = "Tulkot";
+
+/* Profile */
+"language" = "Valoda";
+"theme" = "Tēma";
+"dark_mode" = "Tumšais režīms";
+"system_theme" = "Sistēmas tēma";
+"clear_cache" = "Notīrīt kešatmiņu";
+"reset_settings" = "Atiestatīt iestatījumus";
+
+/* Errors */
+"network_error" = "Tīkla kļūda";
+"no_internet" = "Nav interneta savienojuma";
+"try_again" = "Mēģināt vēlreiz";
+"no_results" = "Nav atrasts neviens rezultāts";
+"no_bookmarks" = "Nav grāmatzīmju";

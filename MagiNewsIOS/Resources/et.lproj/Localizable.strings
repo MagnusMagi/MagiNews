@@ -1,0 +1,55 @@
+/* Common */
+"ok" = "OK";
+"cancel" = "Tühista";
+"done" = "Valmis";
+"save" = "Salvesta";
+"delete" = "Kustuta";
+"edit" = "Muuda";
+"search" = "Otsi";
+"loading" = "Laadimine...";
+"error" = "Viga";
+"retry" = "Proovi uuesti";
+
+/* Navigation */
+"news" = "Uudised";
+"bookmarks" = "Järjehoidjad";
+"profile" = "Profiil";
+"settings" = "Seaded";
+
+/* Categories */
+"all" = "Kõik";
+"politics" = "Poliitika";
+"economy" = "Majandus";
+"culture" = "Kultuur";
+"technology" = "Tehnoloogia";
+"sports" = "Sport";
+"health" = "Tervis";
+
+/* Countries */
+"estonia" = "Eesti";
+"latvia" = "Läti";
+"lithuania" = "Leedu";
+"finland" = "Soome";
+
+/* Actions */
+"bookmark" = "Lisa järjehoidjatesse";
+"share" = "Jaga";
+"read_more" = "Loe rohkem";
+"daily_digest" = "Päevane kokkuvõte";
+"ai_summary" = "AI kokkuvõte";
+"translate" = "Tõlgi";
+
+/* Profile */
+"language" = "Keel";
+"theme" = "Teema";
+"dark_mode" = "Tume režiim";
+"system_theme" = "Süsteemi teema";
+"clear_cache" = "Tühjenda vahemälu";
+"reset_settings" = "Lähtesta seaded";
+
+/* Errors */
+"network_error" = "Võrgu viga";
+"no_internet" = "Internetiühendus puudub";
+"try_again" = "Proovi uuesti";
+"no_results" = "Tulemusi ei leitud";
+"no_bookmarks" = "Järjehoidjaid pole";

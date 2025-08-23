@@ -1,0 +1,55 @@
+/* Common */
+"ok" = "Gerai";
+"cancel" = "Atšaukti";
+"done" = "Atlikta";
+"save" = "Išsaugoti";
+"delete" = "Ištrinti";
+"edit" = "Redaguoti";
+"search" = "Ieškoti";
+"loading" = "Kraunama...";
+"error" = "Klaida";
+"retry" = "Bandyti dar kartą";
+
+/* Navigation */
+"news" = "Naujienos";
+"bookmarks" = "Žymės";
+"profile" = "Profilis";
+"settings" = "Nustatymai";
+
+/* Categories */
+"all" = "Visi";
+"politics" = "Politika";
+"economy" = "Ekonomika";
+"culture" = "Kultūra";
+"technology" = "Technologijos";
+"sports" = "Sportas";
+"health" = "Sveikata";
+
+/* Countries */
+"estonia" = "Estija";
+"latvia" = "Latvija";
+"lithuania" = "Lietuva";
+"finland" = "Suomija";
+
+/* Actions */
+"bookmark" = "Pridėti prie žymių";
+"share" = "Dalintis";
+"read_more" = "Skaityti daugiau";
+"daily_digest" = "Dienos santrauka";
+"ai_summary" = "AI santrauka";
+"translate" = "Versti";
+
+/* Profile */
+"language" = "Kalba";
+"theme" = "Tema";
+"dark_mode" = "Tamsus režimas";
+"system_theme" = "Sistemos tema";
+"clear_cache" = "Išvalyti talpyklą";
+"reset_settings" = "Atstatyti nustatymus";
+
+/* Errors */
+"network_error" = "Tinklo klaida";
+"no_internet" = "Nėra interneto ryšio";
+"try_again" = "Bandyti dar kartą";
+"no_results" = "Rezultatų nerasta";
+"no_bookmarks" = "Žymių nėra";

@@ -62,12 +62,26 @@ class SummarizationService: ObservableObject {
     private let apiKey: String
     private let baseURL = "https://api.openai.com/v1/chat/completions"
     
+    // Cache for summaries and translations to reduce API usage
+    private let cache = NSCache<NSString, NSString>()
+    
     init() {
-        // In production, load from secure storage
-        self.apiKey = "your-openai-api-key-here"
+        // In production, load from secure storage or environment variables
+        // For development, set your OpenAI API key here
+        self.apiKey = "YOUR_OPENAI_API_KEY_HERE"
+        
+        // Set cache limits
+        cache.countLimit = 100
+        cache.totalCostLimit = 50 * 1024 * 1024 // 50MB
     }
     
     func summarizeArticle(_ content: String, language: String = "English") async throws -> String {
+        // Check cache first
+        let cacheKey = "\(content.hash)_\(language)".description
+        if let cachedSummary = cache.object(forKey: cacheKey as NSString) {
+            return String(cachedSummary)
+        }
+        
         isSummarizing = true
         errorMessage = nil
         
@@ -81,10 +95,21 @@ class SummarizationService: ObservableObject {
             temperature: 0.7
         )
         
-        return try await performOpenAIRequest(request)
+        let summary = try await performOpenAIRequest(request)
+        
+        // Cache the summary
+        cache.setObject(summary as NSString, forKey: cacheKey as NSString)
+        
+        return summary
     }
     
     func translateArticle(_ content: String, from sourceLanguage: String, to targetLanguage: String) async throws -> String {
+        // Check cache first
+        let cacheKey = "\(content.hash)_\(sourceLanguage)_\(targetLanguage)".description
+        if let cachedTranslation = cache.object(forKey: cacheKey as NSString) {
+            return String(cachedTranslation)
+        }
+        
         isSummarizing = true
         errorMessage = nil
         
@@ -98,10 +123,22 @@ class SummarizationService: ObservableObject {
             temperature: 0.3
         )
         
-        return try await performOpenAIRequest(request)
+        let translation = try await performOpenAIRequest(request)
+        
+        // Cache the translation
+        cache.setObject(translation as NSString, forKey: cacheKey as NSString)
+        
+        return translation
     }
     
     func generateDailyDigest(_ articles: [RSSItem]) async throws -> String {
+        // Check cache first - use articles hash as cache key
+        let articlesHash = articles.map { $0.title + $0.description }.joined().hash
+        let cacheKey = "digest_\(articlesHash)".description
+        if let cachedDigest = cache.object(forKey: cacheKey as NSString) {
+            return String(cachedDigest)
+        }
+        
         isSummarizing = true
         errorMessage = nil
         
@@ -115,7 +152,12 @@ class SummarizationService: ObservableObject {
             temperature: 0.7
         )
         
-        return try await performOpenAIRequest(request)
+        let digest = try await performOpenAIRequest(request)
+        
+        // Cache the digest
+        cache.setObject(digest as NSString, forKey: cacheKey as NSString)
+        
+        return digest
     }
     
     private func performOpenAIRequest(_ request: OpenAIRequest) async throws -> String {
@@ -197,6 +239,20 @@ class SummarizationService: ObservableObject {
         
         Daily Digest Summary:
         """
+    }
+    
+    // MARK: - Cache Management
+    
+    func clearCache() {
+        cache.removeAllObjects()
+    }
+    
+    func getCacheSize() -> Int {
+        return cache.totalCostLimit
+    }
+    
+    func getCacheCount() -> Int {
+        return cache.countLimit
     }
 }
 

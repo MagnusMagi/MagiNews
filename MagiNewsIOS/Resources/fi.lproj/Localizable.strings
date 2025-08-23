@@ -1,0 +1,55 @@
+/* Common */
+"ok" = "OK";
+"cancel" = "Peruuta";
+"done" = "Valmis";
+"save" = "Tallenna";
+"delete" = "Poista";
+"edit" = "Muokkaa";
+"search" = "Etsi";
+"loading" = "Ladataan...";
+"error" = "Virhe";
+"retry" = "Yritä uudelleen";
+
+/* Navigation */
+"news" = "Uutiset";
+"bookmarks" = "Kirjanmerkit";
+"profile" = "Profiili";
+"settings" = "Asetukset";
+
+/* Categories */
+"all" = "Kaikki";
+"politics" = "Politiikka";
+"economy" = "Talous";
+"culture" = "Kulttuuri";
+"technology" = "Teknologia";
+"sports" = "Urheilu";
+"health" = "Terveys";
+
+/* Countries */
+"estonia" = "Viro";
+"latvia" = "Latvia";
+"lithuania" = "Liettua";
+"finland" = "Suomi";
+
+/* Actions */
+"bookmark" = "Lisää kirjanmerkkeihin";
+"share" = "Jaa";
+"read_more" = "Lue lisää";
+"daily_digest" = "Päivän yhteenveto";
+"ai_summary" = "AI yhteenveto";
+"translate" = "Käännä";
+
+/* Profile */
+"language" = "Kieli";
+"theme" = "Teema";
+"dark_mode" = "Tumma tila";
+"system_theme" = "Järjestelmän teema";
+"clear_cache" = "Tyhjennä välimuisti";
+"reset_settings" = "Nollaa asetukset";
+
+/* Errors */
+"network_error" = "Verkkovirhe";
+"no_internet" = "Ei internet-yhteyttä";
+"try_again" = "Yritä uudelleen";
+"no_results" = "Tuloksia ei löytynyt";
+"no_bookmarks" = "Ei kirjanmerkkejä";
