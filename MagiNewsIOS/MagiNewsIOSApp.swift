@@ -12,7 +12,9 @@ import SwiftData
 struct MagiNewsIOSApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            NewsArticle.self,
+            NewsCategory.self,
+            UserPreferences.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -25,7 +27,7 @@ struct MagiNewsIOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView()
         }
         .modelContainer(sharedModelContainer)
     }
