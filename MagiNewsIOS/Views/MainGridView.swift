@@ -17,6 +17,7 @@ struct MainGridView: View {
     @State private var showingDailyDigest = false
     @State private var showingSearch = false
     @State private var showingProfile = false
+    @State private var showingCountrySelector = false
     @State private var searchText = ""
     @State private var refreshTrigger = UUID()
     
@@ -37,10 +38,10 @@ struct MainGridView: View {
             articles = articles.filter { $0.category.lowercased().contains(selectedCategory.lowercased()) }
         }
         
-        // Filter by country - Temporarily disabled
-        // if selectedCountry != "All" {
-        //     articles = articles.filter { $0.region == selectedCountry }
-        // }
+        // Filter by country
+        if selectedCountry != "All" {
+            articles = articles.filter { $0.region == selectedCountry }
+        }
         
         // Filter by search text
         if !searchText.isEmpty {
@@ -123,6 +124,21 @@ struct MainGridView: View {
             .padding(.vertical, 12)
             .background(Color(.systemBackground))
             
+            // Cache age indicator
+            if newsRepository.isShowingCachedData {
+                HStack {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("Viewing cached news")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+            }
+            
             Divider()
         }
     }
@@ -189,9 +205,9 @@ struct MainGridView: View {
         VStack(spacing: 0) {
             Divider()
             
-            HStack(spacing: 30) {
-                // Country Selector - Temporarily disabled
-                // countrySelector
+            HStack(spacing: 20) {
+                // Country Selector
+                countrySelector
                 
                 Spacer()
                 
@@ -238,22 +254,7 @@ struct MainGridView: View {
     }
     
     private var countrySelector: some View {
-        Menu {
-            ForEach(countries, id: \.0) { country, flag in
-                Button(action: {
-                    selectedCountry = country
-                }) {
-                    HStack {
-                        Text(flag)
-                        Text(country)
-                        if selectedCountry == country {
-                            Image(systemName: "checkmark")
-                                .foregroundColor(.blue)
-                        }
-                    }
-                }
-            }
-        } label: {
+        Button(action: { showingCountrySelector = true }) {
             HStack(spacing: 8) {
                 Text(countries.first { $0.0 == selectedCountry }?.1 ?? "🌍")
                     .font(.title2)
@@ -265,6 +266,9 @@ struct MainGridView: View {
                     .foregroundColor(.secondary)
             }
             .foregroundColor(.primary)
+        }
+        .sheet(isPresented: $showingCountrySelector) {
+            CountrySelectorView(selectedCountry: $selectedCountry, countries: countries)
         }
     }
     
@@ -381,19 +385,68 @@ struct CategoryTabButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.subheadline)
+                .font(.caption)
                 .fontWeight(isSelected ? .bold : .medium)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
                 .background(isSelected ? Color.blue : Color.clear)
                 .foregroundColor(isSelected ? .white : .primary)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: 16)
                         .stroke(isSelected ? Color.clear : Color(.systemGray4), lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Country Selector View
+
+struct CountrySelectorView: View {
+    @Binding var selectedCountry: String
+    let countries: [(String, String)]
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            List {
+                ForEach(countries, id: \.0) { country, flag in
+                    Button(action: {
+                        selectedCountry = country
+                        dismiss()
+                    }) {
+                        HStack {
+                            Text(flag)
+                                .font(.title2)
+                            
+                            Text(country)
+                                .font(.body)
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            if selectedCountry == country {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.blue)
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .navigationTitle("Select Country")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 }
 

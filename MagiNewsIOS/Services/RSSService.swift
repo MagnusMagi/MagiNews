@@ -94,11 +94,23 @@ struct RSSItem: Codable, Identifiable {
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        title = try container.decode(String.self, forKey: .title)
+        
+        // Clean CDATA and HTML entities from RSS content
+        let rawTitle = try container.decode(String.self, forKey: .title)
+        title = rawTitle.cleanedRSSContent
+        
         link = try container.decode(String.self, forKey: .link)
-        description = try container.decode(String.self, forKey: .description)
+        
+        let rawDescription = try container.decode(String.self, forKey: .description)
+        description = rawDescription.cleanedRSSContent
+        
         pubDate = try container.decode(String.self, forKey: .pubDate)
-        category = try container.decodeIfPresent(String.self, forKey: .category)
+        
+        if let rawCategory = try container.decodeIfPresent(String.self, forKey: .category) {
+            category = rawCategory.cleanedRSSContent
+        } else {
+            category = nil
+        }
         
         // Handle image URL from enclosure
         if let enclosure = try container.decodeIfPresent(Enclosure.self, forKey: .imageURL) {

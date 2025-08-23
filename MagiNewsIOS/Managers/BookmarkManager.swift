@@ -13,6 +13,7 @@ class BookmarkManager: ObservableObject {
     @AppStorage("bookmarkedArticles") private var bookmarkedArticlesData: Data = Data()
     
     @Published var bookmarkedArticles: Set<UUID> = []
+    @Published var lastUpdateTime: Date = Date()
     
     init() {
         loadBookmarks()
@@ -26,6 +27,7 @@ class BookmarkManager: ObservableObject {
         } else {
             addBookmark(for: articleId)
         }
+        lastUpdateTime = Date()
     }
     
     func isBookmarked(_ articleId: UUID) -> Bool {
@@ -35,16 +37,28 @@ class BookmarkManager: ObservableObject {
     func removeBookmark(for articleId: UUID) {
         bookmarkedArticles.remove(articleId)
         saveBookmarks()
+        objectWillChange.send() // Ensure UI updates
     }
     
     func clearAllBookmarks() {
         bookmarkedArticles.removeAll()
         saveBookmarks()
+        lastUpdateTime = Date()
+        objectWillChange.send() // Ensure UI updates
     }
     
     func addBookmark(for articleId: UUID) {
         bookmarkedArticles.insert(articleId)
         saveBookmarks()
+        objectWillChange.send() // Ensure UI updates
+    }
+    
+    func getBookmarkedCount() -> Int {
+        return bookmarkedArticles.count
+    }
+    
+    func hasBookmarks() -> Bool {
+        return !bookmarkedArticles.isEmpty
     }
     
     // MARK: - Private Methods
@@ -54,6 +68,7 @@ class BookmarkManager: ObservableObject {
             let decoder = JSONDecoder()
             let articleIds = try decoder.decode([UUID].self, from: bookmarkedArticlesData)
             bookmarkedArticles = Set(articleIds)
+            lastUpdateTime = Date()
         } catch {
             print("Failed to load bookmarks: \(error)")
             bookmarkedArticles = []

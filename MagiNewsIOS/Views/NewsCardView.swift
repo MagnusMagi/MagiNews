@@ -92,7 +92,7 @@ struct NewsCardView: View {
     
     private var imageSection: some View {
         GeometryReader { geometry in
-            if let imageURL = article.imageURL, !imageURL.isEmpty {
+            if let imageURL = article.imageURL, !imageURL.isEmpty, imageURL != "null" {
                 AsyncImage(url: URL(string: imageURL)) { phase in
                     switch phase {
                     case .success(let image):
@@ -103,20 +103,36 @@ struct NewsCardView: View {
                             .clipped()
                             .transition(.opacity.animation(.easeInOut(duration: 0.3)))
                     case .failure(_):
-                        imagePlaceholder
+                        defaultThumbnail
                     case .empty:
-                        imagePlaceholder
+                        defaultThumbnail
                             .redacted(reason: .placeholder)
                     @unknown default:
-                        imagePlaceholder
+                        defaultThumbnail
                     }
                 }
             } else {
-                imagePlaceholder
+                defaultThumbnail
             }
         }
         .frame(height: 120) // Fixed height for consistency
         .aspectRatio(16/9, contentMode: .fit)
+    }
+    
+    private var defaultThumbnail: some View {
+        Rectangle()
+            .fill(Color(.systemGray5))
+            .overlay(
+                VStack(spacing: 8) {
+                    Image(systemName: "newspaper")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
+                    Text(article.category.prefix(1).uppercased())
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                }
+            )
     }
     
     private var imagePlaceholder: some View {

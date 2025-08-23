@@ -40,8 +40,8 @@ struct ProfileView: View {
                     // Profile Header
                     profileHeader
                     
-                    // Language & Region Settings
-                    languageRegionSection
+                    // Language & Region Settings - Temporarily disabled
+                    // languageRegionSection
                     
                     // Appearance Settings
                     appearanceSection

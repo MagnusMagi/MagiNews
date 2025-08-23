@@ -14,21 +14,103 @@ class NewsRepository: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var lastUpdateTime: Date?
+    @Published var isShowingCachedData = false
     
     private let rssService = RSSService()
     private let offlineCache = OfflineCache()
     private let localSummarizer = LocalSummarizer()
     private var cancellables = Set<AnyCancellable>()
     
+    // Cache expiry settings
+    private let cacheExpiryHours: TimeInterval = 12 * 3600 // 12 hours
+    
     init() {
         // Load cached articles on startup
         loadCachedArticles()
     }
     
+    // MARK: - Cache Management
+    
+    private func loadCachedArticles() {
+        let cachedArticles = offlineCache.getArticles(for: nil)
+        if !cachedArticles.isEmpty {
+            // Convert CachedArticle to Article
+            articles = cachedArticles.map { cachedArticle in
+                Article(
+                    id: cachedArticle.id,
+                    title: cachedArticle.rssItem.title,
+                    content: cachedArticle.rssItem.description,
+                    summary: cachedArticle.summary ?? localSummarizer.generateSummary(from: cachedArticle.rssItem.description),
+                    author: "News Reporter",
+                    publishedAt: cachedArticle.rssItem.pubDate,
+                    imageURL: cachedArticle.rssItem.imageURL,
+                    category: cachedArticle.rssItem.category ?? "General",
+                    source: cachedArticle.source,
+                    region: cachedArticle.region,
+                    language: cachedArticle.language,
+                    link: cachedArticle.rssItem.link
+                )
+            }
+            isShowingCachedData = true
+            lastUpdateTime = Date() // Use current time as fallback
+        }
+    }
+    
+    private func cacheArticles(_ articles: [Article]) {
+        // Convert Article to RSSItem and cache via OfflineCache
+        for article in articles {
+            let rssItem = RSSItem(
+                title: article.title,
+                link: article.link,
+                description: article.content,
+                pubDate: article.publishedAt,
+                category: article.category,
+                imageURL: article.imageURL
+            )
+            
+            let cachedArticle = CachedArticle(
+                id: article.id,
+                rssItem: rssItem,
+                summary: article.summary,
+                translatedTitle: nil,
+                translatedSummary: nil,
+                cachedAt: Date(),
+                source: article.source,
+                region: article.region,
+                language: article.language
+            )
+            
+            offlineCache.cacheArticle(cachedArticle)
+        }
+        isShowingCachedData = false
+    }
+    
+    private func isCacheExpired() -> Bool {
+        guard let lastUpdate = lastUpdateTime else { return true }
+        let expiryDate = lastUpdate.addingTimeInterval(cacheExpiryHours)
+        return Date() > expiryDate
+    }
+    
+    private func getCacheAgeMessage() -> String? {
+        guard let lastUpdate = lastUpdateTime else { return nil }
+        
+        let timeInterval = Date().timeIntervalSince(lastUpdate)
+        let hours = Int(timeInterval / 3600)
+        let minutes = Int((timeInterval.truncatingRemainder(dividingBy: 3600)) / 60)
+        
+        if hours > 0 {
+            return "You're viewing saved news from \(hours) hour\(hours == 1 ? "" : "s") ago"
+        } else if minutes > 0 {
+            return "You're viewing saved news from \(minutes) minute\(minutes == 1 ? "" : "s") ago"
+        } else {
+            return "You're viewing the latest news"
+        }
+    }
+    
     // MARK: - Public Methods
     
     func loadArticles(source: RSSFeedSource? = nil, forceRefresh: Bool = false) async {
-        if forceRefresh || articles.isEmpty {
+        if forceRefresh || articles.isEmpty || isCacheExpired() {
             await fetchFreshArticles(source: source)
         } else {
             loadCachedArticles()
@@ -216,59 +298,6 @@ class NewsRepository: ObservableObject {
         }
         
         return nil
-    }
-    
-    // MARK: - Caching
-    
-    private func loadCachedArticles() {
-        let cachedArticles = offlineCache.cachedArticles.map { cachedArticle in
-            Article(
-                id: cachedArticle.id,
-                title: cachedArticle.rssItem.title,
-                content: cachedArticle.rssItem.description,
-                summary: cachedArticle.summary ?? localSummarizer.generateSummary(from: cachedArticle.rssItem.description),
-                author: "News Reporter",
-                publishedAt: cachedArticle.rssItem.pubDate,
-                imageURL: cachedArticle.rssItem.imageURL,
-                category: cachedArticle.rssItem.category ?? "General",
-                source: cachedArticle.source,
-                region: cachedArticle.region,
-                language: cachedArticle.language,
-                link: cachedArticle.rssItem.link
-            )
-        }
-        
-        if !cachedArticles.isEmpty {
-            articles = cachedArticles
-        }
-    }
-    
-    private func cacheArticles(_ articles: [Article]) {
-        // Convert articles back to cached format
-        for article in articles {
-            let rssItem = RSSItem(
-                title: article.title,
-                link: article.link,
-                description: article.content,
-                pubDate: article.publishedAt,
-                category: article.category,
-                imageURL: article.imageURL
-            )
-            
-            let cachedArticle = CachedArticle(
-                id: article.id,
-                rssItem: rssItem,
-                summary: article.summary,
-                translatedTitle: nil,
-                translatedSummary: nil,
-                cachedAt: Date(),
-                source: article.source,
-                region: article.region,
-                language: article.language
-            )
-            
-            offlineCache.cacheArticle(cachedArticle)
-        }
     }
 }
 
