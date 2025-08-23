@@ -107,6 +107,16 @@ struct RSSItem: Codable, Identifiable {
             imageURL = nil
         }
     }
+    
+    // Manual initializer for creating RSSItem instances
+    init(title: String, link: String, description: String, pubDate: String, category: String?, imageURL: String?) {
+        self.title = title
+        self.link = link
+        self.description = description
+        self.pubDate = pubDate
+        self.category = category
+        self.imageURL = imageURL
+    }
 }
 
 struct Enclosure: Codable {
@@ -156,13 +166,8 @@ class RSSService: ObservableObject {
         
         return URLSession.shared.dataTaskPublisher(for: url)
             .map(\.data)
-            .decode(type: RSSFeed.self, decoder: RSSDecoder())
-            .map { feed in
-                // Enrich feed with source information
-                var enrichedFeed = feed
-                // Note: In a real implementation, you'd need to modify the RSSFeed struct
-                // to include source information, or create a wrapper
-                return enrichedFeed
+            .tryMap { data in
+                try self.parseRSSFeed(from: data, source: source)
             }
             .catch { error -> AnyPublisher<RSSFeed?, Error> in
                 print("Error fetching feed from \(source.url): \(error)")
@@ -179,16 +184,93 @@ class RSSService: ObservableObject {
         }
         
         let (data, _) = try await URLSession.shared.data(from: url)
-        let feed = try RSSDecoder().decode(RSSFeed.self, from: data)
-        return feed
+        return try parseRSSFeed(from: data, source: source)
     }
-}
-
-// MARK: - RSS Decoder
-class RSSDecoder: XMLDecoder {
-    override init() {
-        super.init()
-        self.keyDecodingStrategy = .useDefaultKeys
+    
+    // MARK: - RSS Parsing
+    private func parseRSSFeed(from data: Data, source: RSSFeedSource) throws -> RSSFeed {
+        let xmlString = String(data: data, encoding: .utf8) ?? ""
+        
+        // Simple XML parsing for RSS feeds
+        let title = extractValue(from: xmlString, tag: "title")
+        let link = extractValue(from: xmlString, tag: "link")
+        let description = extractValue(from: xmlString, tag: "description")
+        let language = extractValue(from: xmlString, tag: "language") ?? "en"
+        let lastBuildDate = extractValue(from: xmlString, tag: "lastBuildDate") ?? ""
+        
+        let items = parseRSSItems(from: xmlString)
+        
+        return RSSFeed(
+            title: title,
+            link: link,
+            description: description,
+            language: language,
+            lastBuildDate: lastBuildDate,
+            items: items
+        )
+    }
+    
+    private func parseRSSItems(from xmlString: String) -> [RSSItem] {
+        var items: [RSSItem] = []
+        let itemPattern = "<item>(.*?)</item>"
+        let regex = try? NSRegularExpression(pattern: itemPattern, options: [.dotMatchesLineSeparators])
+        
+        let matches = regex?.matches(in: xmlString, options: [], range: NSRange(xmlString.startIndex..., in: xmlString)) ?? []
+        
+        for match in matches {
+            if let range = Range(match.range, in: xmlString) {
+                let itemString = String(xmlString[range])
+                if let item = parseRSSItem(from: itemString) {
+                    items.append(item)
+                }
+            }
+        }
+        
+        return items
+    }
+    
+    private func parseRSSItem(from itemString: String) -> RSSItem? {
+        let title = extractValue(from: itemString, tag: "title")
+        let link = extractValue(from: itemString, tag: "link")
+        let description = extractValue(from: itemString, tag: "description")
+        let pubDate = extractValue(from: itemString, tag: "pubDate")
+        let category = extractValue(from: itemString, tag: "category")
+        
+        // Extract image URL from enclosure
+        let imageURL = extractEnclosureURL(from: itemString)
+        
+        return RSSItem(
+            title: title,
+            link: link,
+            description: description,
+            pubDate: pubDate,
+            category: category,
+            imageURL: imageURL
+        )
+    }
+    
+    private func extractValue(from xmlString: String, tag: String) -> String {
+        let pattern = "<\(tag)>(.*?)</\(tag)>"
+        let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators])
+        
+        if let match = regex?.firstMatch(in: xmlString, options: [], range: NSRange(xmlString.startIndex..., in: xmlString)),
+           let range = Range(match.range(at: 1), in: xmlString) {
+            return String(xmlString[range]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        
+        return ""
+    }
+    
+    private func extractEnclosureURL(from itemString: String) -> String? {
+        let pattern = "<enclosure url=\"(.*?)\""
+        let regex = try? NSRegularExpression(pattern: pattern, options: [])
+        
+        if let match = regex?.firstMatch(in: itemString, options: [], range: NSRange(itemString.startIndex..., in: itemString)),
+           let range = Range(match.range(at: 1), in: itemString) {
+            return String(itemString[range]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        
+        return nil
     }
 }
 

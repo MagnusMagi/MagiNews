@@ -10,7 +10,7 @@ import Combine
 
 // MARK: - Cache Models
 struct CachedArticle: Codable, Identifiable {
-    let id = UUID()
+    var id = UUID()
     let rssItem: RSSItem
     let summary: String?
     let translatedTitle: String?
@@ -19,6 +19,18 @@ struct CachedArticle: Codable, Identifiable {
     let source: String
     let region: String
     let language: String
+    
+    init(id: UUID = UUID(), rssItem: RSSItem, summary: String?, translatedTitle: String?, translatedSummary: String?, cachedAt: Date, source: String, region: String, language: String) {
+        self.id = id
+        self.rssItem = rssItem
+        self.summary = summary
+        self.translatedTitle = translatedTitle
+        self.translatedSummary = translatedSummary
+        self.cachedAt = cachedAt
+        self.source = source
+        self.region = region
+        self.language = language
+    }
     
     var isExpired: Bool {
         // Cache expires after 24 hours
@@ -86,9 +98,19 @@ class OfflineCache: ObservableObject {
     
     func updateArticleSummary(_ articleId: UUID, summary: String) {
         if let index = cachedArticles.firstIndex(where: { $0.rssItem.id == articleId }) {
-            var updatedArticle = cachedArticles[index]
-            // Note: In a real implementation, you'd need to make CachedArticle mutable
-            // or create a new instance with updated values
+            // Create a new instance with updated summary
+            let currentArticle = cachedArticles[index]
+            let updatedArticle = CachedArticle(
+                id: currentArticle.id,
+                rssItem: currentArticle.rssItem,
+                summary: summary,
+                translatedTitle: currentArticle.translatedTitle,
+                translatedSummary: currentArticle.translatedSummary,
+                cachedAt: currentArticle.cachedAt,
+                source: currentArticle.source,
+                region: currentArticle.region,
+                language: currentArticle.language
+            )
             cachedArticles[index] = updatedArticle
             saveCachedData()
         }
@@ -116,11 +138,11 @@ class OfflineCache: ObservableObject {
         return cachedArticles
     }
     
-    func getArticles(for region: String) -> [CachedArticle] {
+    func getArticles(forRegion region: String) -> [CachedArticle] {
         return cachedArticles.filter { $0.region == region }
     }
     
-    func getArticles(for language: String) -> [CachedArticle] {
+    func getArticles(forLanguage language: String) -> [CachedArticle] {
         return cachedArticles.filter { $0.language == language }
     }
     

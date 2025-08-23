@@ -204,10 +204,10 @@ struct DailyDigestView: View {
                         .font(.title3)
                         .fontWeight(.semibold)
                     
-                    ForEach(articles.prefix(5)) { article in
+                    ForEach(Array(articles.prefix(5).enumerated()), id: \.element.id) { index, article in
                         HStack(alignment: .top, spacing: 12) {
                             // Story number
-                            Text("\(articles.firstIndex(of: article)! + 1)")
+                            Text("\(index + 1)")
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.blue)
@@ -342,5 +342,5 @@ struct DailyDigestView: View {
         )
     ]
     
-    return DailyDigestView(articles: sampleArticles)
+    DailyDigestView(articles: sampleArticles)
 }

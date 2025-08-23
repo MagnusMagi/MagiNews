@@ -579,7 +579,7 @@ struct TranslationView: View {
         language: "Estonian"
     )
     
-    return NavigationView {
+    NavigationView {
         ArticleDetailView(article: sampleArticle)
     }
 }
