@@ -195,8 +195,8 @@ class RSSService: ObservableObject {
         let title = extractValue(from: xmlString, tag: "title")
         let link = extractValue(from: xmlString, tag: "link")
         let description = extractValue(from: xmlString, tag: "description")
-        let language = extractValue(from: xmlString, tag: "language") ?? "en"
-        let lastBuildDate = extractValue(from: xmlString, tag: "lastBuildDate") ?? ""
+        let language = extractOptionalValue(from: xmlString, tag: "language") ?? "en"
+        let lastBuildDate = extractOptionalValue(from: xmlString, tag: "lastBuildDate") ?? ""
         
         let items = parseRSSItems(from: xmlString)
         
@@ -259,6 +259,19 @@ class RSSService: ObservableObject {
         }
         
         return ""
+    }
+    
+    private func extractOptionalValue(from xmlString: String, tag: String) -> String? {
+        let pattern = "<\(tag)>(.*?)</\(tag)>"
+        let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators])
+        
+        if let match = regex?.firstMatch(in: xmlString, options: [], range: NSRange(xmlString.startIndex..., in: xmlString)),
+           let range = Range(match.range(at: 1), in: xmlString) {
+            let value = String(xmlString[range]).trimmingCharacters(in: .whitespacesAndNewlines)
+            return value.isEmpty ? nil : value
+        }
+        
+        return nil
     }
     
     private func extractEnclosureURL(from itemString: String) -> String? {
