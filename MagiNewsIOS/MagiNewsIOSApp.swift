@@ -27,135 +27,39 @@ struct MagiNewsIOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            TabView {
-                HomeView()
-                    .tabItem {
-                        Image(systemName: "newspaper")
-                        Text("News")
-                    }
-                
-                BookmarksView()
-                    .tabItem {
-                        Image(systemName: "bookmark.fill")
-                        Text("Bookmarks")
-                    }
-                
-                SettingsView()
-                    .tabItem {
-                        Image(systemName: "gear")
-                        Text("Settings")
-                    }
-            }
-            .accentColor(.blue)
+            MainGridView()
         }
         .modelContainer(sharedModelContainer)
     }
 }
 
-// MARK: - Settings View
-
-struct SettingsView: View {
-    @AppStorage("language") private var selectedLanguage = "en"
-    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
-    
-    var body: some View {
-        NavigationView {
-            List {
-                Section("Appearance") {
-                    Toggle("Dark Mode", isOn: $darkModeEnabled)
-                }
-                
-                Section("Language") {
-                    Picker("Language", selection: $selectedLanguage) {
-                        ForEach(SupportedLanguage.allCases, id: \.rawValue) { language in
-                            HStack {
-                                Text(language.flag)
-                                Text(language.displayName)
-                            }
-                            .tag(language.rawValue)
-                        }
-                    }
-                }
-                
-                Section("About") {
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text("1.0.0")
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            .navigationTitle("Settings")
-        }
-    }
-}
+// MARK: - Legacy Views (now using MainGridView as main entry point)
 
 // MARK: - Previews
 #Preview("Main App") {
-    ContentView()
+    MainGridView()
         .modelContainer(previewContainer)
 }
 
-#Preview("TabView") {
-    TabView {
-        MainFeedView()
-            .tabItem {
-                Image(systemName: "newspaper")
-                Text("News")
-            }
-        
-        BookmarksView()
-            .tabItem {
-                Image(systemName: "bookmark")
-                Text("Bookmarks")
-            }
-        
-        SettingsView()
-            .tabItem {
-                Image(systemName: "gear")
-                Text("Settings")
-            }
-    }
-    .accentColor(.blue)
+#Preview("Main Grid View") {
+    MainGridView()
 }
 
-#Preview("Bookmarks") {
-    BookmarksView()
+#Preview("Profile View") {
+    ProfileView()
 }
 
-#Preview("Settings") {
-    SettingsView()
-}
-
-#Preview("Settings - Dark Mode") {
-    SettingsView()
-        .preferredColorScheme(.dark)
+#Preview("Search View") {
+    SearchView(
+        articles: [],
+        bookmarkManager: BookmarkManager()
+    )
 }
 
 // MARK: - Preview Helper
 struct ContentView: View {
     var body: some View {
-        TabView {
-            HomeView()
-                .tabItem {
-                    Image(systemName: "newspaper")
-                    Text("News")
-                }
-            
-            BookmarksView()
-                .tabItem {
-                    Image(systemName: "bookmark")
-                    Text("Bookmarks")
-                }
-            
-            SettingsView()
-                .tabItem {
-                    Image(systemName: "gear")
-                    Text("Settings")
-                }
-        }
-        .accentColor(.blue)
+        MainGridView()
     }
 }
 
