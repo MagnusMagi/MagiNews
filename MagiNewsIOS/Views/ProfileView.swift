@@ -13,6 +13,7 @@ struct ProfileView: View {
     @StateObject private var settingsStore = SettingsStore()
     @StateObject private var cacheManager: CacheManager
     @StateObject private var bookmarkManager = BookmarkManager()
+    @StateObject private var recentlyViewedService = RecentlyViewedService()
     
     // MARK: - Environment
     @Environment(\.dismiss) private var dismiss
@@ -60,6 +61,9 @@ struct ProfileView: View {
                         dailyDigestNotifications: $settingsStore.dailyDigestNotifications,
                         wifiOnlyFetch: $settingsStore.wifiOnlyFetch
                     )
+                    
+                    // Recently Viewed Articles
+                    recentlyViewedSection
                     
                     // App Information
                     appInfoSection
@@ -278,6 +282,50 @@ struct ProfileView: View {
         }
     }
     
+    // MARK: - Recently Viewed Section
+    private var recentlyViewedSection: some View {
+        CardSection(
+            title: "Recently Viewed",
+            icon: "clock.arrow.circlepath",
+            iconColor: .blue
+        ) {
+            VStack(spacing: 16) {
+                if recentlyViewedService.recentlyViewedArticles.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "clock.badge.questionmark")
+                            .font(.title2)
+                            .foregroundColor(.secondary)
+                        Text("No recently viewed articles")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Text("Articles you read will appear here")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                } else {
+                    LazyVStack(spacing: 12) {
+                        ForEach(recentlyViewedService.recentlyViewedArticles) { article in
+                            RecentlyViewedRow(article: article) {
+                                recentlyViewedService.removeArticle(article.articleId)
+                            }
+                        }
+                    }
+                    
+                    HStack {
+                        Spacer()
+                        Button("Clear History") {
+                            recentlyViewedService.clearHistory()
+                        }
+                        .font(.caption)
+                        .foregroundColor(.red)
+                    }
+                }
+            }
+        }
+    }
+    
     // MARK: - Helper Methods
     
     private func handleAvatarUpdate() {
@@ -350,6 +398,81 @@ struct ProfileView: View {
             settingsStore.biometricLockEnabled = false
             print("Biometric authentication not available: \(error?.localizedDescription ?? "Unknown error")")
         }
+    }
+}
+
+// MARK: - Recently Viewed Row
+struct RecentlyViewedRow: View {
+    let article: RecentlyViewedArticle
+    let onRemove: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Article Image
+            if let imageURL = article.imageURL, !imageURL.isEmpty {
+                AsyncImage(url: URL(string: imageURL)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Rectangle()
+                        .fill(Color(.systemGray5))
+                        .overlay(
+                            Image(systemName: "photo")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        )
+                }
+                .frame(width: 50, height: 50)
+                .clipped()
+                .cornerRadius(8)
+            } else {
+                Rectangle()
+                    .fill(Color(.systemGray5))
+                    .frame(width: 50, height: 50)
+                    .overlay(
+                        Image(systemName: "photo")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    )
+                    .cornerRadius(8)
+            }
+            
+            // Article Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(article.title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .lineLimit(2)
+                    .foregroundColor(Color("TextPrimary"))
+                
+                HStack {
+                    Text(article.source)
+                        .font(.caption)
+                        .foregroundColor(Color("TextSecondary"))
+                    
+                    Text("•")
+                        .font(.caption)
+                        .foregroundColor(Color("TextSecondary"))
+                    
+                    Text(article.timeAgo)
+                        .font(.caption)
+                        .foregroundColor(Color("TextSecondary"))
+                }
+            }
+            
+            Spacer()
+            
+            // Remove Button
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(.red)
+            }
+        }
+        .padding(12)
+        .background(Color("Card"))
+        .cornerRadius(12)
     }
 }
 

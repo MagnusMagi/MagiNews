@@ -11,6 +11,7 @@ struct ArticleDetailView: View {
     let article: CachedArticle
     @StateObject private var summarizationService = SummarizationService()
     @StateObject private var newsRepository = NewsRepository()
+    @StateObject private var recentlyViewedService = RecentlyViewedService()
     @State private var aiSummary: String = ""
     @State private var isGeneratingSummary = false
     @State private var showingTranslation = false
@@ -83,6 +84,9 @@ struct ArticleDetailView: View {
             )
         }
         .onAppear {
+            // Track this article as recently viewed
+            recentlyViewedService.addCachedArticle(article)
+            
             if aiSummary.isEmpty {
                 generateAISummary()
             }

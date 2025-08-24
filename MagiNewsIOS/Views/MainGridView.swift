@@ -11,6 +11,7 @@ struct MainGridView: View {
     @StateObject private var newsRepository = NewsRepository()
     @EnvironmentObject private var bookmarkManager: BookmarkManager
     @StateObject private var summarizationService = SummarizationService()
+    @StateObject private var recentlyViewedService = RecentlyViewedService()
     
     @State private var selectedCategory: String = "All"
     @State private var selectedCountry: String = "All"
@@ -175,6 +176,10 @@ struct MainGridView: View {
                                 .aspectRatio(0.75, contentMode: .fit) // Consistent aspect ratio
                             }
                             .buttonStyle(.plain)
+                            .onTapGesture {
+                                // Track article view in recently viewed
+                                recentlyViewedService.addArticle(article)
+                            }
                         }
                     }
                 )
