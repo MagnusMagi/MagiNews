@@ -19,10 +19,11 @@ class NewsRepository: ObservableObject {
     private let rssService = RSSService()
     private let offlineCache = OfflineCache()
     private let localSummarizer = LocalSummarizer()
+    private let newsCacheManager = NewsCacheManager()
     private var cancellables = Set<AnyCancellable>()
     
     // Cache expiry settings
-    private let cacheExpiryHours: TimeInterval = 12 * 3600 // 12 hours
+    private let cacheExpiryHours: TimeInterval = 6 * 3600 // 6 hours (matching NewsCacheManager)
     
     init() {
         // Load cached articles on startup
@@ -32,31 +33,46 @@ class NewsRepository: ObservableObject {
     // MARK: - Cache Management
     
     private func loadCachedArticles() {
-        let cachedArticles = offlineCache.getArticles(for: nil)
-        if !cachedArticles.isEmpty {
-            // Convert CachedArticle to Article
-            articles = cachedArticles.map { cachedArticle in
-                Article(
-                    title: cachedArticle.rssItem.title,
-                    content: cachedArticle.rssItem.description,
-                    summary: cachedArticle.summary ?? localSummarizer.generateSummary(from: cachedArticle.rssItem.description),
-                    author: "News Reporter",
-                    publishedAt: cachedArticle.rssItem.pubDate,
-                    imageURL: cachedArticle.rssItem.imageURL,
-                    category: cachedArticle.rssItem.category ?? "General",
-                    source: cachedArticle.source,
-                    region: cachedArticle.region,
-                    language: cachedArticle.language,
-                    link: cachedArticle.rssItem.link
-                )
-            }
+        // Use NewsCacheManager for better cache handling
+        let allCachedArticles = newsCacheManager.getAllCachedArticles()
+        if !allCachedArticles.isEmpty {
+            articles = allCachedArticles
             isShowingCachedData = true
-            lastUpdateTime = Date() // Use current time as fallback
+            lastUpdateTime = newsCacheManager.getLatestCacheTimestamp()
+        } else {
+            // Fallback to OfflineCache for backward compatibility
+            let cachedArticles = offlineCache.getArticles(for: nil)
+            if !cachedArticles.isEmpty {
+                articles = cachedArticles.map { cachedArticle in
+                    Article(
+                        title: cachedArticle.rssItem.title,
+                        content: cachedArticle.rssItem.description,
+                        summary: cachedArticle.summary ?? localSummarizer.generateSummary(from: cachedArticle.rssItem.description),
+                        author: "News Reporter",
+                        publishedAt: cachedArticle.rssItem.pubDate,
+                        imageURL: cachedArticle.rssItem.imageURL,
+                        category: cachedArticle.rssItem.category ?? "General",
+                        source: cachedArticle.source,
+                        region: cachedArticle.region,
+                        language: cachedArticle.language,
+                        link: cachedArticle.rssItem.link
+                    )
+                }
+                isShowingCachedData = true
+                lastUpdateTime = Date()
+            }
         }
     }
     
     private func cacheArticles(_ articles: [Article]) {
-        // Convert Article to RSSItem and cache via OfflineCache
+        // Use NewsCacheManager for better cache management
+        let articlesByRegion = Dictionary(grouping: articles) { $0.region }
+        
+        for (region, regionArticles) in articlesByRegion {
+            newsCacheManager.updateCache(articles: regionArticles, for: region)
+        }
+        
+        // Also update OfflineCache for backward compatibility
         for article in articles {
             let rssItem = RSSItem(
                 title: article.title,
@@ -137,7 +153,11 @@ class NewsRepository: ObservableObject {
     }
     
     func getArticles(forRegion region: String) -> [Article] {
-        articles.filter { $0.region == region }
+        // Use NewsCacheManager for region-specific articles
+        if newsCacheManager.isCacheValid(for: region) {
+            return newsCacheManager.getCachedArticles(for: region)
+        }
+        return articles.filter { $0.region == region }
     }
     
     func getArticles(forCategory category: String) -> [Article] {
@@ -171,9 +191,12 @@ class NewsRepository: ObservableObject {
                 }
             }
             
+            // Deduplicate articles using NewsCacheManager
+            let deduplicatedArticles = deduplicateArticles(newArticles)
+            
             // Update articles and cache
-            articles = newArticles
-            cacheArticles(newArticles)
+            articles = deduplicatedArticles
+            cacheArticles(deduplicatedArticles)
             lastUpdateTime = Date()
             
         } catch {
@@ -187,6 +210,18 @@ class NewsRepository: ObservableObject {
         }
         
         isLoading = false
+    }
+    
+    private func deduplicateArticles(_ articles: [Article]) -> [Article] {
+        // Use NewsCacheManager's deduplication logic
+        let articlesByLink = Dictionary(grouping: articles) { $0.link }
+        let uniqueArticles = articlesByLink.compactMap { $0.value.first }
+        
+        // Sort by publication date (newest first)
+        return uniqueArticles.sorted { 
+            parseDate(from: $0.publishedAt) ?? Date.distantPast > 
+            parseDate(from: $1.publishedAt) ?? Date.distantPast 
+        }
     }
     
     private func fetchAllFeeds() async -> [RSSFeed] {
@@ -211,17 +246,14 @@ class NewsRepository: ObservableObject {
     
     private func convertToArticle(item: RSSItem, feed: RSSFeed) -> Article {
         let source = determineSource(from: feed.link)
-        let region = determineRegion(from: source)
-        let language = determineLanguage(from: source)
-        
-        // Generate local summary
-        let summary = localSummarizer.generateSummary(from: item.description)
+        let region = determineRegion(from: feed.link)
+        let language = determineLanguage(from: feed.link)
         
         return Article(
             title: item.title,
-            content: item.description,
-            summary: summary,
-            author: extractAuthor(from: item.description),
+            content: item.description.cleanedRSSContent,
+            summary: localSummarizer.generateSummary(from: item.description.cleanedRSSContent),
+            author: "News Reporter",
             publishedAt: item.pubDate,
             imageURL: item.imageURL,
             category: item.category ?? "General",
@@ -232,64 +264,51 @@ class NewsRepository: ObservableObject {
         )
     }
     
-    private func determineSource(from feedLink: String) -> String {
-        if feedLink.contains("err.ee") { return "ERR.ee" }
-        if feedLink.contains("postimees.ee") { return "Postimees.ee" }
-        if feedLink.contains("delfi.ee") { return "Delfi.ee" }
-        if feedLink.contains("lsm.lv") { return "LSM.lv" }
-        if feedLink.contains("lrt.lt") { return "LRT.lt" }
-        if feedLink.contains("yle.fi") { return "Yle.fi" }
+    private func determineSource(from link: String) -> String {
+        if link.contains("err.ee") { return "ERR" }
+        if link.contains("postimees.ee") { return "Postimees" }
+        if link.contains("delfi.ee") { return "Delfi" }
+        if link.contains("lrt.lt") { return "LRT" }
+        if link.contains("delfi.lt") { return "Delfi Lithuania" }
+        if link.contains("lsm.lv") { return "LSM" }
+        if link.contains("delfi.lv") { return "Delfi Latvia" }
+        if link.contains("yle.fi") { return "Yle" }
+        if link.contains("hs.fi") { return "Helsingin Sanomat" }
         return "Unknown"
     }
     
-    private func determineRegion(from source: String) -> String {
-        switch source {
-        case "ERR.ee", "Postimees.ee", "Delfi.ee":
-            return "Estonia"
-        case "LSM.lv":
-            return "Latvia"
-        case "LRT.lt":
-            return "Lithuania"
-        case "Yle.fi":
-            return "Finland"
-        default:
-            return "Unknown"
-        }
+    private func determineRegion(from link: String) -> String {
+        if link.contains(".ee") { return "Estonia" }
+        if link.contains(".lt") { return "Lithuania" }
+        if link.contains(".lv") { return "Latvia" }
+        if link.contains(".fi") { return "Finland" }
+        return "Unknown"
     }
     
-    private func determineLanguage(from source: String) -> String {
-        switch source {
-        case "ERR.ee", "Postimees.ee", "Delfi.ee":
-            return "Estonian"
-        case "LSM.lv":
-            return "Latvian"
-        case "LRT.lt":
-            return "Lithuanian"
-        case "Yle.fi":
-            return "Finnish"
-        default:
-            return "English"
-        }
-    }
-    
-    private func extractAuthor(from content: String) -> String {
-        // Simple author extraction - can be improved
-        return "News Reporter"
+    private func determineLanguage(from link: String) -> String {
+        if link.contains("en.") || link.contains("/en/") { return "en" }
+        if link.contains("et.") || link.contains("/et/") { return "et" }
+        if link.contains("lt.") || link.contains("/lt/") { return "lt" }
+        if link.contains("lv.") || link.contains("/lv/") { return "lv" }
+        if link.contains("fi.") || link.contains("/fi/") { return "fi" }
+        return "en"
     }
     
     private func parseDate(from dateString: String) -> Date? {
-        let formatter = DateFormatter()
-        
-        // Try common RSS date formats
-        let formats = [
-            "EEE, dd MMM yyyy HH:mm:ss Z",
+        let formatters = [
             "yyyy-MM-dd'T'HH:mm:ssZ",
-            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+            "EEE, dd MMM yyyy HH:mm:ss Z",
+            "EEE, dd MMM yyyy HH:mm:ss zzz",
             "dd MMM yyyy HH:mm:ss Z"
         ]
         
-        for format in formats {
+        for format in formatters {
+            let formatter = DateFormatter()
             formatter.dateFormat = format
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = TimeZone(abbreviation: "UTC")
+            
             if let date = formatter.date(from: dateString) {
                 return date
             }

@@ -35,22 +35,33 @@ class NewsCacheManager: ObservableObject {
         return cachedArticles[region] ?? []
     }
     
+    func getAllCachedArticles() -> [Article] {
+        return Array(cachedArticles.values.flatMap { $0 })
+    }
+    
+    func getLatestCacheTimestamp() -> Date? {
+        return cacheTimestamps.values.max()
+    }
+    
     /// Update cache with new articles for a region
     func updateCache(articles: [Article], for region: String) {
-        // Deduplicate articles using link as unique identifier
-        let existingArticles = cachedArticles[region] ?? []
-        let newArticles = articles.filter { newArticle in
-            !existingArticles.contains { $0.link == newArticle.link }
+        // Check if feed has changed significantly
+        if hasFeedChanged(articles: articles, for: region) {
+            // Clear old cache and add new articles
+            cachedArticles[region] = articles
+            cacheTimestamps[region] = Date()
+        } else {
+            // Merge new articles with existing cache, avoiding duplicates
+            let existingArticles = cachedArticles[region] ?? []
+            let newArticles = articles.filter { newArticle in
+                !existingArticles.contains { $0.link == newArticle.link }
+            }
+            
+            if !newArticles.isEmpty {
+                cachedArticles[region] = existingArticles + newArticles
+                cacheTimestamps[region] = Date()
+            }
         }
-        
-        // Merge and deduplicate
-        let allArticles = existingArticles + newArticles
-        let deduplicatedArticles = Dictionary(grouping: allArticles, by: { $0.link })
-            .compactMap { $0.value.first }
-            .sorted { $0.publishedDate ?? Date.distantPast > $1.publishedDate ?? Date.distantPast }
-        
-        cachedArticles[region] = deduplicatedArticles
-        cacheTimestamps[region] = Date()
         
         saveCacheToDisk()
     }
