@@ -112,7 +112,7 @@ class RecentlyViewedService: ObservableObject {
 
 // MARK: - Recently Viewed Article Model
 struct RecentlyViewedArticle: Identifiable, Codable, Hashable {
-    let id = UUID()
+    var id = UUID()
     let articleId: String
     let title: String
     let summary: String
