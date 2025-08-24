@@ -10,12 +10,13 @@ import SwiftUI
 struct ArticleDetailView: View {
     let article: CachedArticle
     @StateObject private var summarizationService = SummarizationService()
+    @StateObject private var newsRepository = NewsRepository()
     @State private var aiSummary: String = ""
     @State private var isGeneratingSummary = false
     @State private var showingTranslation = false
     @State private var translatedContent: String = ""
     @State private var isTranslating = false
-    @State private var errorMessage: String?
+    @State private var errorMessage: String = ""
     
     var body: some View {
         ScrollView {
@@ -45,6 +46,9 @@ struct ArticleDetailView: View {
                         .lineLimit(nil)
                         .dynamicTypeSize(.large)
                         .lineSpacing(4)
+                    
+                    // Related Articles
+                    relatedArticlesSection
                     
                     // Source Information
                     sourceInfo
@@ -556,6 +560,200 @@ struct TranslationView: View {
            let window = windowScene.windows.first {
             window.rootViewController?.present(activityVC, animated: true)
         }
+    }
+    
+    // MARK: - Related Articles Section
+    private var relatedArticlesSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("You May Also Like")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(Color("TextPrimary"))
+            
+            let relatedArticles = getRelatedArticles()
+            
+            if !relatedArticles.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(relatedArticles.prefix(5)) { relatedArticle in
+                            RelatedArticleCard(article: relatedArticle)
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                }
+            } else {
+                Text("No related articles found")
+                    .font(.subheadline)
+                    .foregroundColor(Color("TextSecondary"))
+                    .italic()
+            }
+        }
+        .padding(.vertical, 8)
+    }
+    
+    private func getRelatedArticles() -> [Article] {
+        let currentCategory = article.rssItem.category ?? "General"
+        let currentRegion = article.region
+        
+        // Get articles from the same category and region
+        let categoryArticles = newsRepository.getArticles(forCategory: currentCategory)
+        let regionArticles = newsRepository.getArticles(forRegion: currentRegion)
+        
+        // Combine and filter out the current article
+        let allRelated = (categoryArticles + regionArticles)
+            .filter { $0.link != article.rssItem.link }
+            .filter { $0.title != article.rssItem.title }
+        
+        // Remove duplicates and sort by relevance
+        let uniqueRelated = Array(Set(allRelated))
+            .sorted { article1, article2 in
+                // Prioritize same category + region, then same category, then same region
+                let article1Score = getRelevanceScore(article1, currentCategory: currentCategory, currentRegion: currentRegion)
+                let article2Score = getRelevanceScore(article2, currentCategory: currentCategory, currentRegion: currentRegion)
+                return article1Score > article2Score
+            }
+        
+        return Array(uniqueRelated.prefix(5))
+    }
+    
+    private func getRelevanceScore(_ article: Article, currentCategory: String, currentRegion: String) -> Int {
+        var score = 0
+        
+        // Same category gets highest priority
+        if article.category.lowercased().contains(currentCategory.lowercased()) {
+            score += 10
+        }
+        
+        // Same region gets medium priority
+        if article.region == currentRegion {
+            score += 5
+        }
+        
+        // Recent articles get bonus points
+        if let date = parseDate(from: article.publishedAt) {
+            let daysSincePublished = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
+            if daysSincePublished <= 1 {
+                score += 3
+            } else if daysSincePublished <= 3 {
+                score += 2
+            } else if daysSincePublished <= 7 {
+                score += 1
+            }
+        }
+        
+        return score
+    }
+    
+    private func parseDate(from dateString: String) -> Date? {
+        let formatters = [
+            "yyyy-MM-dd'T'HH:mm:ssZ",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+            "EEE, dd MMM yyyy HH:mm:ss Z",
+            "EEE, dd MMM yyyy HH:mm:ss zzz",
+            "dd MMM yyyy HH:mm:ss Z"
+        ]
+        
+        for format in formatters {
+            let formatter = DateFormatter()
+            formatter.dateFormat = format
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = TimeZone(abbreviation: "UTC")
+            
+            if let date = formatter.date(from: dateString) {
+                return date
+            }
+        }
+        
+        return nil
+    }
+}
+
+// MARK: - Related Article Card
+struct RelatedArticleCard: View {
+    let article: Article
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Article Image
+            if let imageURL = article.imageURL, !imageURL.isEmpty {
+                AsyncImage(url: URL(string: imageURL)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Rectangle()
+                        .fill(Color(.systemGray5))
+                        .overlay(
+                            Image(systemName: "photo")
+                                .font(.title2)
+                                .foregroundColor(.gray)
+                        )
+                }
+                .frame(width: 120, height: 80)
+                .clipped()
+                .cornerRadius(8)
+            } else {
+                Rectangle()
+                    .fill(Color(.systemGray5))
+                    .frame(width: 120, height: 80)
+                    .overlay(
+                        Image(systemName: "photo")
+                            .font(.title2)
+                            .foregroundColor(.gray)
+                    )
+                    .cornerRadius(8)
+            }
+            
+            // Article Title
+            Text(article.title)
+                .font(.caption)
+                .fontWeight(.medium)
+                .lineLimit(2)
+                .foregroundColor(Color("TextPrimary"))
+            
+            // Article Meta
+            HStack {
+                Text(article.source)
+                    .font(.caption2)
+                    .foregroundColor(Color("TextSecondary"))
+                
+                Spacer()
+                
+                if let date = parseDate(from: article.publishedAt) {
+                    Text(date, style: .relative)
+                        .font(.caption2)
+                        .foregroundColor(Color("TextSecondary"))
+                }
+            }
+        }
+        .frame(width: 120)
+        .padding(8)
+        .background(Color("Card"))
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+    }
+    
+    private func parseDate(from dateString: String) -> Date? {
+        let formatters = [
+            "yyyy-MM-dd'T'HH:mm:ssZ",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+            "EEE, dd MMM yyyy HH:mm:ss Z",
+            "EEE, dd MMM yyyy HH:mm:ss zzz",
+            "dd MMM yyyy HH:mm:ss Z"
+        ]
+        
+        for format in formatters {
+            let formatter = DateFormatter()
+            formatter.dateFormat = format
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = TimeZone(abbreviation: "UTC")
+            
+            if let date = formatter.date(from: dateString) {
+                return date
+            }
+        }
+        
+        return nil
     }
 }
 
