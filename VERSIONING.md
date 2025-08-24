@@ -1,77 +1,87 @@
-# 📱 MagiNews iOS - Versiyonlama Rehberi
+# 📱 MagiNews iOS - Versioning Guide
 
-## 🏷️ Semantik Versiyonlama (SemVer)
+## 🏷️ Semantic Versioning (SemVer)
 
 ### Format: `MAJOR.MINOR.PATCH`
 
-- **MAJOR** (X.0.0): Büyük değişiklikler, uyumsuz API değişiklikleri
-- **MINOR** (0.X.0): Yeni özellikler, geriye uyumlu değişiklikler  
-- **PATCH** (0.0.X): Hata düzeltmeleri, küçük iyileştirmeler
+- **MAJOR** (X.0.0): Breaking changes, incompatible API changes
+- **MINOR** (0.X.0): New features, backward compatible changes  
+- **PATCH** (0.0.X): Bug fixes, minor improvements
 
-## 📋 Versiyon Geçmişi
+## 📋 Version History
 
 ### v1.0.0 - Production Ready MVP 🎉
-- ✅ **Tam Baltic/Nordic haber uygulaması MVP**
-- ✅ RSS feed servisi (ERR.ee, Postimees.ee, Delfi.ee, LSM.lv, LRT.lt, Yle.fi)
-- ✅ OpenAI API entegrasyonu (AI özetleme ve çeviri)
-- ✅ Offline cache sistemi ve kalıcı depolama
-- ✅ Modern Nordic UI tasarımı (SwiftUI + Dark Mode)
-- ✅ Çok dilli destek (EN, ET, LV, LT, FI)
-- ✅ Günlük AI özeti ve kategorilere göre filtreleme
-- ✅ Bölge bazlı haber filtreleme
-- ✅ Çeviri özellikleri
-- ✅ Pull-to-refresh ve offline mod
-- ✅ TabView ile ana navigasyon
-- ✅ Kapsamlı makale yönetim sistemi
+- ✅ **Complete Baltic/Nordic news application MVP**
+- ✅ **RSS Feed Service** - Multiple news sources (ERR.ee, Postimees.ee, Delfi.ee, LSM.lv, LRT.lt, Yle.fi)
+- ✅ **OpenAI API Integration** - AI summarization and translation
+- ✅ **Offline Cache System** - Persistent storage with intelligent management
+- ✅ **Modern Nordic UI Design** - SwiftUI + Dark Mode with custom color assets
+- ✅ **Multi-language Support** - EN, ET, LV, LT, FI
+- ✅ **Daily AI Digest** - Category-based filtering and AI-powered summaries
+- ✅ **Region-based News Filtering** - Baltic and Nordic coverage
+- ✅ **Translation Features** - Multi-language article translation
+- ✅ **Pull-to-refresh & Offline Mode** - Seamless content updates
+- ✅ **TabView Navigation** - Main navigation with TabView
+- ✅ **Comprehensive Article Management** - Full article lifecycle management
 
-### v0.2.0 - Core Features Release
-- ✅ Tam haber uygulama yapısı
-- ✅ NewsArticle, NewsCategory, UserPreferences modelleri
-- ✅ HomeView ile ana ekran tasarımı
-- ✅ NewsRowView ile haber listesi görünümü
-- ✅ NewsDetailView ile detaylı haber okuma
-- ✅ Kategori filtreleme ve arama sistemi
-- ✅ Modern SwiftUI tasarım desenleri
-- ✅ Kapsamlı README dokümantasyonu
+### v0.9.0 - Advanced Features Release 🚀
+- ✅ **Dark Mode Implementation** - Custom color assets with light/dark variants
+- ✅ **Smart Cache Management** - NewsCacheManager with 6-hour expiry and deduplication
+- ✅ **Related Articles Feature** - "You May Also Like" section with relevance scoring
+- ✅ **Recently Viewed History** - Track last 5 opened articles with AppStorage
+- ✅ **Enhanced Profile System** - Modular profile sections with comprehensive settings
+- ✅ **AI Personalization** - Summary style preferences and language settings
+- ✅ **Advanced Cache Analytics** - Detailed cache statistics and management
+- ✅ **Modern Component Architecture** - Reusable CardSection and AvatarView components
 
-### v0.1.0 - Initial Release
-- ✅ Temel Xcode proje yapısı
-- ✅ iOS uygulama iskeleti
-- ✅ Test dosyaları (Unit & UI Tests)
-- ✅ Git repository kurulumu
+### v0.8.0 - Core Features Release
+- ✅ **Complete news application structure**
+- ✅ **NewsArticle, NewsCategory, UserPreferences models**
+- ✅ **HomeView with main screen design**
+- ✅ **NewsRowView with news list view**
+- ✅ **NewsDetailView with detailed news reading**
+- ✅ **Category filtering and search system**
+- ✅ **Modern SwiftUI design patterns**
+- ✅ **Comprehensive README documentation**
 
-## 🚀 Gelecek Versiyonlar
+### v0.7.0 - Initial Release
+- ✅ **Basic Xcode project structure**
+- ✅ **iOS application skeleton**
+- ✅ **Test files (Unit & UI Tests)**
+- ✅ **Git repository setup**
+
+## 🚀 Future Versions
 
 ### v1.1.0 - Enhanced Features
-- [ ] Push bildirimleri
-- [ ] Sosyal medya entegrasyonu
-- [ ] Gelişmiş arama algoritmaları
-- [ ] Kullanıcı profilleri
+- [ ] **Push Notifications** - Daily digest and breaking news alerts
+- [ ] **Social Media Integration** - Share articles on social platforms
+- [ ] **Advanced Search Algorithms** - AI-powered search and recommendations
+- [ ] **User Profiles** - Personalized reading preferences and history
 
 ### v1.2.0 - Performance & Analytics
-- [ ] App Store optimizasyonu
-- [ ] Analytics entegrasyonu
-- [ ] Crash reporting
-- [ ] Performance optimizasyonu
+- [ ] **App Store Optimization** - ASO and metadata optimization
+- [ ] **Analytics Integration** - User behavior and performance metrics
+- [ ] **Crash Reporting** - Comprehensive error tracking and reporting
+- [ ] **Performance Optimization** - Memory and battery optimization
 
 ### v2.0.0 - Advanced Features
-- [ ] Podcast entegrasyonu
-- [ ] Video haber desteği
-- [ ] Gelişmiş AI özellikleri
-- [ ] Çoklu platform desteği
+- [ ] **Podcast Integration** - Audio news and podcast support
+- [ ] **Video News Support** - Video content and multimedia
+- [ ] **Advanced AI Features** - Content curation and personalization
+- [ ] **Multi-platform Support** - iPad, macOS, and watchOS
 
-## 📝 Commit Mesaj Standartları
+## 📝 Commit Message Standards
 
 ### Format: `type(scope): description`
 
 **Types:**
-- `feat`: Yeni özellik
-- `fix`: Hata düzeltmesi
-- `docs`: Dokümantasyon
-- `style`: Kod formatı
-- `refactor`: Kod yeniden düzenleme
-- `test`: Test ekleme/düzenleme
-- `chore`: Genel bakım
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation
+- `style`: Code formatting
+- `refactor`: Code refactoring
+- `test`: Test addition/modification
+- `chore`: General maintenance
 
 **Examples:**
 ```
@@ -79,42 +89,76 @@ feat(ui): add news list view
 fix(api): resolve network timeout issue
 docs(readme): update installation guide
 refactor(core): optimize data loading
+feat(cache): implement smart deduplication
+feat(ai): add related articles with relevance scoring
 ```
 
-## 🔄 Versiyon Güncelleme Adımları
+## 🔄 Version Update Steps
 
-1. **Kod değişikliklerini yap**
-2. **Commit mesajı ile commit yap**
-3. **Uygun versiyon numarasını belirle**
-4. **Tag oluştur:** `git tag -a vX.Y.Z -m "Description"`
-5. **Tag'i push et:** `git push origin vX.Y.Z`
-6. **GitHub'da Release oluştur**
+1. **Make code changes**
+2. **Commit with appropriate message**
+3. **Determine appropriate version number**
+4. **Create tag:** `git tag -a vX.Y.Z -m "Description"`
+5. **Push tag:** `git push origin vX.Y.Z`
+6. **Create GitHub Release**
 
-## 📊 Versiyon Kontrol Komutları
+## 📊 Version Control Commands
 
 ```bash
-# Mevcut tag'leri listele
+# List existing tags
 git tag -l
 
-# Son commit'leri görüntüle
+# View recent commits
 git log --oneline -10
 
-# Belirli tag'den sonraki değişiklikleri görüntüle
+# View changes since specific tag
 git log v1.0.0..HEAD --oneline
 
-# Tag'leri GitHub'a push et
+# Push tags to GitHub
 git push origin --tags
+
+# Create annotated tag
+git tag -a v1.0.1 -m "Bug fixes and performance improvements"
+
+# Delete local tag (if needed)
+git tag -d v1.0.1
+
+# Delete remote tag (if needed)
+git push origin --delete v1.0.1
 ```
 
-## 🎯 MVP Özellik Skoru
+## 🎯 Feature Implementation Score
 
-- **Functionality**: 30/30 ✅
-- **UX & Design**: 20/20 ✅
-- **Localization**: 15/15 ✅
-- **Performance**: 15/15 ✅
-- **Engagement**: 20/20 ✅
+### ✅ Completed Features (v1.0.0)
+- **Core Functionality**: 35/35 ✅
+- **User Experience**: 25/25 ✅
+- **AI & Intelligence**: 20/20 ✅
+- **Performance & Caching**: 15/15 ✅
+- **Code Quality**: 5/5 ✅
 - **Total**: 100/100 🎉
+
+### 🚧 In Progress (v1.1.0)
+- **Push Notifications**: 0/15 ⏳
+- **Social Integration**: 0/10 ⏳
+- **Advanced Search**: 0/15 ⏳
+- **User Profiles**: 0/10 ⏳
+
+## 📈 Recent Development Progress
+
+### Latest Implementations (v0.9.0)
+1. **Dark Mode System** - Custom color assets with light/dark variants
+2. **Smart Cache Management** - Intelligent deduplication and expiry
+3. **Related Articles** - AI-powered content recommendations
+4. **Recently Viewed History** - Persistent reading history tracking
+5. **Enhanced Profile System** - Modular, comprehensive user settings
+6. **Modern Component Architecture** - Reusable, maintainable components
+
+### Technical Improvements
+- **UUID to String Migration** - Stable article identification using article links
+- **Centralized State Management** - ObservableObject pattern with @EnvironmentObject
+- **Modular Architecture** - Clean separation of concerns
+- **Performance Optimization** - Efficient caching and data management
 
 ---
 
-**Not:** Her önemli özellik veya düzeltme sonrası versiyon güncellemesi yapılmalıdır.
+**Note:** Each significant feature or fix should be followed by a version update to maintain proper versioning history.
