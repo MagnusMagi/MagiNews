@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct BookmarksView: View {
-    @StateObject private var bookmarkManager = BookmarkManager()
+    @EnvironmentObject private var bookmarkManager: BookmarkManager
     @StateObject private var newsRepository = NewsRepository()
     @State private var searchText = ""
     @State private var selectedCategory = "All"
@@ -19,7 +19,7 @@ struct BookmarksView: View {
     
     var bookmarkedArticles: [Article] {
         let allBookmarkedIds = bookmarkManager.bookmarkedArticles
-        var articles = newsRepository.articles.filter { allBookmarkedIds.contains($0.id) }
+        var articles = newsRepository.articles.filter { allBookmarkedIds.contains($0.link) }
         
         // Filter by search text
         if !searchText.isEmpty {

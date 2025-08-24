@@ -37,7 +37,6 @@ class NewsRepository: ObservableObject {
             // Convert CachedArticle to Article
             articles = cachedArticles.map { cachedArticle in
                 Article(
-                    id: cachedArticle.id,
                     title: cachedArticle.rssItem.title,
                     content: cachedArticle.rssItem.description,
                     summary: cachedArticle.summary ?? localSummarizer.generateSummary(from: cachedArticle.rssItem.description),
@@ -219,7 +218,6 @@ class NewsRepository: ObservableObject {
         let summary = localSummarizer.generateSummary(from: item.description)
         
         return Article(
-            id: UUID(),
             title: item.title,
             content: item.description,
             summary: summary,
@@ -302,8 +300,8 @@ class NewsRepository: ObservableObject {
 }
 
 // MARK: - Article Model
-struct Article: Identifiable, Codable {
-    let id: UUID
+struct Article: Identifiable, Codable, Hashable {
+    let id: String // Using link as stable identifier
     let title: String
     let content: String
     let summary: String
@@ -315,6 +313,21 @@ struct Article: Identifiable, Codable {
     let region: String
     let language: String
     let link: String
+    
+    init(title: String, content: String, summary: String, author: String, publishedAt: String, imageURL: String?, category: String, source: String, region: String, language: String, link: String) {
+        self.id = link // Use link as stable ID
+        self.title = title
+        self.content = content
+        self.summary = summary
+        self.author = author
+        self.publishedAt = publishedAt
+        self.imageURL = imageURL
+        self.category = category
+        self.source = source
+        self.region = region
+        self.language = language
+        self.link = link
+    }
     
     var publishedDate: Date? {
         let formatter = DateFormatter()
@@ -328,6 +341,15 @@ struct Article: Identifiable, Codable {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+    
+    // MARK: - Hashable
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(link)
+    }
+    
+    static func == (lhs: Article, rhs: Article) -> Bool {
+        lhs.link == rhs.link
     }
 }
 

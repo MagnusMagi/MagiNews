@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SearchView: View {
     let articles: [Article]
-    let bookmarkManager: BookmarkManager
+    @EnvironmentObject private var bookmarkManager: BookmarkManager
     
     @State private var searchText = ""
     @State private var selectedCategory: String = "All"
@@ -261,9 +261,9 @@ struct SearchView: View {
                 NavigationLink(destination: ArticleDetailView(article: convertToCache(article))) {
                     SearchResultRow(
                         article: article,
-                        isBookmarked: bookmarkManager.isBookmarked(article.id)
+                        isBookmarked: bookmarkManager.isBookmarked(article.link)
                     ) {
-                        bookmarkManager.toggleBookmark(for: article.id)
+                        bookmarkManager.toggleBookmark(for: article.link)
                     }
                 }
                 .listRowSeparator(.hidden)
@@ -433,8 +433,5 @@ struct SearchResultRow: View {
 }
 
 #Preview {
-    SearchView(
-        articles: [],
-        bookmarkManager: BookmarkManager()
-    )
+    SearchView(articles: [])
 }

@@ -561,6 +561,7 @@ struct TranslationView: View {
 
 #Preview {
     let sampleArticle = CachedArticle(
+        id: "sample-article-id",
         rssItem: RSSItem(
             title: "Sample Article Title",
             link: "https://example.com",

@@ -9,7 +9,7 @@ import SwiftUI
 
 struct MainGridView: View {
     @StateObject private var newsRepository = NewsRepository()
-    @StateObject private var bookmarkManager = BookmarkManager()
+    @EnvironmentObject private var bookmarkManager: BookmarkManager
     @StateObject private var summarizationService = SummarizationService()
     
     @State private var selectedCategory: String = "All"
@@ -17,7 +17,6 @@ struct MainGridView: View {
     @State private var showingDailyDigest = false
     @State private var showingSearch = false
     @State private var showingProfile = false
-    @State private var showingCountrySelector = false
     @State private var searchText = ""
     @State private var refreshTrigger = UUID()
     
@@ -87,10 +86,7 @@ struct MainGridView: View {
                 DailyDigestView(articles: newsRepository.getDailyDigest())
             }
             .sheet(isPresented: $showingSearch) {
-                SearchView(
-                    articles: newsRepository.articles,
-                    bookmarkManager: bookmarkManager
-                )
+                SearchView(articles: newsRepository.articles)
             }
             .sheet(isPresented: $showingProfile) {
                 ProfileView()
@@ -107,7 +103,7 @@ struct MainGridView: View {
         VStack(spacing: 0) {
             // Category Picker
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
+                HStack(spacing: 12) {
                     ForEach(categories, id: \.self) { category in
                         CategoryTabButton(
                             title: category,
@@ -119,9 +115,9 @@ struct MainGridView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 20)
             }
-            .padding(.vertical, 12)
+            .padding(.vertical, 16)
             .background(Color(.systemBackground))
             
             // Cache age indicator
@@ -135,7 +131,7 @@ struct MainGridView: View {
                         .foregroundColor(.secondary)
                     Spacer()
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 20)
                 .padding(.bottom, 8)
             }
             
@@ -169,10 +165,10 @@ struct MainGridView: View {
                             NavigationLink(destination: ArticleDetailView(article: convertToCache(article))) {
                                 NewsCardView(
                                     article: article,
-                                    isBookmarked: .constant(bookmarkManager.isBookmarked(article.id)),
+                                    isBookmarked: .constant(bookmarkManager.isBookmarked(article)),
                                     onTap: {},
                                     onBookmarkToggle: {
-                                        bookmarkManager.toggleBookmark(for: article.id)
+                                        bookmarkManager.toggleBookmark(for: article)
                                     }
                                 )
                                 .frame(maxWidth: .infinity)
@@ -254,7 +250,22 @@ struct MainGridView: View {
     }
     
     private var countrySelector: some View {
-        Button(action: { showingCountrySelector = true }) {
+        Menu {
+            ForEach(countries, id: \.0) { country, flag in
+                Button(action: {
+                    selectedCountry = country
+                }) {
+                    HStack {
+                        Text(flag)
+                        Text(country)
+                        if selectedCountry == country {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+            }
+        } label: {
             HStack(spacing: 8) {
                 Text(countries.first { $0.0 == selectedCountry }?.1 ?? "🌍")
                     .font(.title2)
@@ -266,9 +277,6 @@ struct MainGridView: View {
                     .foregroundColor(.secondary)
             }
             .foregroundColor(.primary)
-        }
-        .sheet(isPresented: $showingCountrySelector) {
-            CountrySelectorView(selectedCountry: $selectedCountry, countries: countries)
         }
     }
     
@@ -386,67 +394,22 @@ struct CategoryTabButton: View {
         Button(action: action) {
             Text(title)
                 .font(.caption)
-                .fontWeight(isSelected ? .bold : .medium)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(isSelected ? Color.blue : Color.clear)
+                .fontWeight(isSelected ? .semibold : .medium)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(isSelected ? Color.blue : Color(.systemGray6))
+                )
                 .foregroundColor(isSelected ? .white : .primary)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16)
+                    RoundedRectangle(cornerRadius: 20)
                         .stroke(isSelected ? Color.clear : Color(.systemGray4), lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Country Selector View
-
-struct CountrySelectorView: View {
-    @Binding var selectedCountry: String
-    let countries: [(String, String)]
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationView {
-            List {
-                ForEach(countries, id: \.0) { country, flag in
-                    Button(action: {
-                        selectedCountry = country
-                        dismiss()
-                    }) {
-                        HStack {
-                            Text(flag)
-                                .font(.title2)
-                            
-                            Text(country)
-                                .font(.body)
-                                .foregroundColor(.primary)
-                            
-                            Spacer()
-                            
-                            if selectedCountry == country {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(.blue)
-                                    .fontWeight(.semibold)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .navigationTitle("Select Country")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-        }
+        .scaleEffect(isSelected ? 1.05 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: isSelected)
     }
 }
 

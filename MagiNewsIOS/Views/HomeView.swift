@@ -201,8 +201,8 @@ struct HomeView: View {
         List {
             ForEach(filteredArticles) { article in
                 NavigationLink(destination: ArticleDetailView(article: convertToCache(article))) {
-                    ArticleRowView(article: article, isBookmarked: bookmarkManager.isBookmarked(article.id)) {
-                        bookmarkManager.toggleBookmark(for: article.id)
+                    ArticleRowView(article: article, isBookmarked: bookmarkManager.isBookmarked(article)) {
+                        bookmarkManager.toggleBookmark(for: article)
                     }
                 }
                 .listRowSeparator(.hidden)

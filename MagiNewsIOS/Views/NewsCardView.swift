@@ -13,8 +13,6 @@ struct NewsCardView: View {
     let onTap: () -> Void
     let onBookmarkToggle: () -> Void
     
-    // Removed sentiment analysis for better performance
-    
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
@@ -84,29 +82,28 @@ struct NewsCardView: View {
                 onTap()
             }
         }
-        // Removed onAppear sentiment analysis for better performance
         .transition(.opacity.combined(with: .scale))
     }
     
     // MARK: - Computed Properties
     
     private var imageSection: some View {
-        GeometryReader { geometry in
-            if let imageURL = article.imageURL, !imageURL.isEmpty, imageURL != "null" {
+        ZStack {
+            if let imageURL = article.imageURL, !imageURL.isEmpty, imageURL != "null", imageURL.isValidURL {
                 AsyncImage(url: URL(string: imageURL)) { phase in
                     switch phase {
                     case .success(let image):
                         image
                             .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .aspectRatio(16/9, contentMode: .fill)
                             .clipped()
                             .transition(.opacity.animation(.easeInOut(duration: 0.3)))
                     case .failure(_):
                         defaultThumbnail
                     case .empty:
-                        defaultThumbnail
-                            .redacted(reason: .placeholder)
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color(.systemGray6))
                     @unknown default:
                         defaultThumbnail
                     }
@@ -115,13 +112,14 @@ struct NewsCardView: View {
                 defaultThumbnail
             }
         }
-        .frame(height: 120) // Fixed height for consistency
+        .frame(height: 120)
         .aspectRatio(16/9, contentMode: .fit)
+        .clipped()
     }
     
     private var defaultThumbnail: some View {
         Rectangle()
-            .fill(Color(.systemGray5))
+            .fill(Color(.systemGray6))
             .overlay(
                 VStack(spacing: 8) {
                     Image(systemName: "newspaper")
@@ -132,16 +130,6 @@ struct NewsCardView: View {
                         .fontWeight(.bold)
                         .foregroundColor(.secondary)
                 }
-            )
-    }
-    
-    private var imagePlaceholder: some View {
-        Rectangle()
-            .fill(Color(.systemGray5))
-            .overlay(
-                Image(systemName: "photo")
-                    .font(.title2)
-                    .foregroundColor(.secondary)
             )
     }
     
@@ -168,9 +156,6 @@ struct NewsCardView: View {
     private var shadowColor: Color {
         colorScheme == .dark ? .black.opacity(0.3) : .black.opacity(0.1)
     }
-    
-    // MARK: - Helper Methods
-    // Sentiment analysis removed for better performance
 }
 
 // MARK: - Category Badge Component
@@ -236,7 +221,6 @@ struct BookmarkButton: View {
         LazyVStack(spacing: 20) {
             NewsCardView(
                 article: Article(
-                    id: UUID(),
                     title: "Estonia Leads Digital Innovation in Baltics",
                     content: "Estonia continues to be a pioneer in digital transformation, setting new standards for e-governance and digital services across the Baltic region.",
                     summary: "Estonia's digital leadership in the Baltic region continues to grow with new initiatives in e-governance and digital services.",
@@ -264,7 +248,6 @@ struct BookmarkButton: View {
         LazyVStack(spacing: 20) {
             NewsCardView(
                 article: Article(
-                    id: UUID(),
                     title: "Nordic Council Meeting Discusses Climate Policy",
                     content: "The Nordic Council held an important meeting about climate change policies and sustainable development goals for the region.",
                     summary: "Nordic countries align on new climate initiatives and sustainable development goals.",

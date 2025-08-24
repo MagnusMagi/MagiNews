@@ -12,7 +12,7 @@ import SwiftUI
 class BookmarkManager: ObservableObject {
     @AppStorage("bookmarkedArticles") private var bookmarkedArticlesData: Data = Data()
     
-    @Published var bookmarkedArticles: Set<UUID> = []
+    @Published var bookmarkedArticles: Set<String> = [] // Using article.link as stable ID
     @Published var lastUpdateTime: Date = Date()
     
     init() {
@@ -21,36 +21,62 @@ class BookmarkManager: ObservableObject {
     
     // MARK: - Public Methods
     
-    func toggleBookmark(for articleId: UUID) {
+    func toggleBookmark(for article: Article) {
+        let articleId = article.link // Use link as stable identifier
         if bookmarkedArticles.contains(articleId) {
-            removeBookmark(for: articleId)
+            removeBookmark(for: article)
         } else {
-            addBookmark(for: articleId)
+            addBookmark(for: article)
         }
         lastUpdateTime = Date()
     }
     
-    func isBookmarked(_ articleId: UUID) -> Bool {
-        bookmarkedArticles.contains(articleId)
+    func toggleBookmark(for articleLink: String) {
+        if bookmarkedArticles.contains(articleLink) {
+            removeBookmark(for: articleLink)
+        } else {
+            addBookmark(for: articleLink)
+        }
+        lastUpdateTime = Date()
     }
     
-    func removeBookmark(for articleId: UUID) {
-        bookmarkedArticles.remove(articleId)
+    func isBookmarked(_ article: Article) -> Bool {
+        bookmarkedArticles.contains(article.link)
+    }
+    
+    func isBookmarked(_ articleLink: String) -> Bool {
+        bookmarkedArticles.contains(articleLink)
+    }
+    
+    func removeBookmark(for article: Article) {
+        bookmarkedArticles.remove(article.link)
         saveBookmarks()
-        objectWillChange.send() // Ensure UI updates
+        objectWillChange.send()
+    }
+    
+    func removeBookmark(for articleLink: String) {
+        bookmarkedArticles.remove(articleLink)
+        saveBookmarks()
+        objectWillChange.send()
     }
     
     func clearAllBookmarks() {
         bookmarkedArticles.removeAll()
         saveBookmarks()
         lastUpdateTime = Date()
-        objectWillChange.send() // Ensure UI updates
+        objectWillChange.send()
     }
     
-    func addBookmark(for articleId: UUID) {
-        bookmarkedArticles.insert(articleId)
+    func addBookmark(for article: Article) {
+        bookmarkedArticles.insert(article.link)
         saveBookmarks()
-        objectWillChange.send() // Ensure UI updates
+        objectWillChange.send()
+    }
+    
+    func addBookmark(for articleLink: String) {
+        bookmarkedArticles.insert(articleLink)
+        saveBookmarks()
+        objectWillChange.send()
     }
     
     func getBookmarkedCount() -> Int {
@@ -66,7 +92,7 @@ class BookmarkManager: ObservableObject {
     private func loadBookmarks() {
         do {
             let decoder = JSONDecoder()
-            let articleIds = try decoder.decode([UUID].self, from: bookmarkedArticlesData)
+            let articleIds = try decoder.decode([String].self, from: bookmarkedArticlesData)
             bookmarkedArticles = Set(articleIds)
             lastUpdateTime = Date()
         } catch {
@@ -88,10 +114,10 @@ class BookmarkManager: ObservableObject {
 
 // MARK: - Bookmark Extensions
 
-extension CachedArticle {
+extension Article {
     var isBookmarked: Bool {
-        // This would be used in views to check bookmark status
-        // Implementation depends on how BookmarkManager is injected
+        // This will be used in views to check bookmark status
+        // The actual implementation will be provided by the view's environment
         false
     }
 }

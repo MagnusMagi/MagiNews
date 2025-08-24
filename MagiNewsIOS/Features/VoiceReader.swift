@@ -4,7 +4,7 @@ import SwiftUI
 
 // MARK: - Voice Reader
 @MainActor
-class VoiceReader: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
+class VoiceReader: NSObject, ObservableObject, @preconcurrency AVSpeechSynthesizerDelegate {
     @Published var isReading = false
     @Published var currentText = ""
     @Published var errorMessage: String?
@@ -162,33 +162,39 @@ class VoiceReader: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
 
 // MARK: - AVSpeechSynthesizerDelegate Methods
 extension VoiceReader {
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
         DispatchQueue.main.async {
-            self.isReading = true
+            Task { @MainActor in
+                self.isReading = true
+            }
         }
     }
     
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         DispatchQueue.main.async {
-            self.isReading = false
-            self.currentText = ""
-            self.currentUtterance = nil
+            Task { @MainActor in
+                self.isReading = false
+                self.currentText = ""
+                self.currentUtterance = nil
+            }
         }
     }
     
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         DispatchQueue.main.async {
-            self.isReading = false
-            self.currentText = ""
-            self.currentUtterance = nil
+            Task { @MainActor in
+                self.isReading = false
+                self.currentText = ""
+                self.currentUtterance = nil
+            }
         }
     }
     
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didPause utterance: AVSpeechUtterance) {
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didPause utterance: AVSpeechUtterance) {
         // Handle pause if needed
     }
     
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didContinue utterance: AVSpeechUtterance) {
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didContinue utterance: AVSpeechUtterance) {
         // Handle resume if needed
     }
 }

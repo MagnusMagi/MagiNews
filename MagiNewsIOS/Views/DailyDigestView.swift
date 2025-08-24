@@ -357,15 +357,14 @@ struct DailyDigestView: View {
 #Preview {
     let sampleArticles = [
         Article(
-            id: UUID(),
-            title: "Sample Article 1",
-            content: "Sample content for testing",
-            summary: "Sample description for testing purposes",
-            author: "Test Author",
+            title: "Sample Article",
+            content: "This is a sample article content for preview purposes.",
+            summary: "Sample summary",
+            author: "Sample Author",
             publishedAt: "Mon, 24 Aug 2025 10:00:00 +0000",
             imageURL: nil,
-            category: "Technology",
-            source: "ERR.ee",
+            category: "General",
+            source: "Sample Source",
             region: "Estonia",
             language: "en",
             link: "https://example.com"

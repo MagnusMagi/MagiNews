@@ -10,8 +10,7 @@ import SwiftUI
 
 @MainActor
 class ThemeManager: ObservableObject {
-    @AppStorage("isDarkModeEnabled") private var isDarkModeEnabled: Bool = false
-    @AppStorage("useSystemTheme") private var useSystemTheme: Bool = true
+    @AppStorage("theme") private var theme: AppTheme = .system
     
     @Published var currentColorScheme: ColorScheme?
     
@@ -21,68 +20,25 @@ class ThemeManager: ObservableObject {
     
     // MARK: - Public Methods
     
-    func toggleDarkMode() {
-        isDarkModeEnabled.toggle()
-        useSystemTheme = false
+    func setTheme(_ newTheme: AppTheme) {
+        theme = newTheme
         updateColorScheme()
     }
     
-    func enableSystemTheme() {
-        useSystemTheme = true
-        updateColorScheme()
-    }
-    
-    func setDarkMode(_ enabled: Bool) {
-        isDarkModeEnabled = enabled
-        useSystemTheme = false
-        updateColorScheme()
-    }
-    
-    func getCurrentTheme() -> ThemePreference {
-        if useSystemTheme {
-            return .system
-        } else {
-            return isDarkModeEnabled ? .dark : .light
-        }
+    func getCurrentTheme() -> AppTheme {
+        return theme
     }
     
     // MARK: - Private Methods
     
     private func updateColorScheme() {
-        if useSystemTheme {
+        switch theme {
+        case .system:
             currentColorScheme = nil // Use system default
-        } else {
-            currentColorScheme = isDarkModeEnabled ? .dark : .light
-        }
-    }
-}
-
-// MARK: - Theme Preference Enum
-
-enum ThemePreference: String, CaseIterable {
-    case system = "system"
-    case light = "light"
-    case dark = "dark"
-    
-    var displayName: String {
-        switch self {
-        case .system:
-            return "System"
         case .light:
-            return "Light"
+            currentColorScheme = .light
         case .dark:
-            return "Dark"
-        }
-    }
-    
-    var icon: String {
-        switch self {
-        case .system:
-            return "gear"
-        case .light:
-            return "sun.max.fill"
-        case .dark:
-            return "moon.fill"
+            currentColorScheme = .dark
         }
     }
 }

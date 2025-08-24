@@ -78,8 +78,8 @@ struct RSSFeed: Codable, Identifiable {
     }
 }
 
-struct RSSItem: Codable, Identifiable {
-    let id = UUID()
+struct RSSItem: Codable, Identifiable, Hashable {
+    let id: String // Using link as stable identifier
     let title: String
     let link: String
     let description: String
@@ -100,6 +100,7 @@ struct RSSItem: Codable, Identifiable {
         title = rawTitle.cleanedRSSContent
         
         link = try container.decode(String.self, forKey: .link)
+        self.id = link // Set ID to link for stable identity
         
         let rawDescription = try container.decode(String.self, forKey: .description)
         description = rawDescription.cleanedRSSContent
@@ -122,12 +123,22 @@ struct RSSItem: Codable, Identifiable {
     
     // Manual initializer for creating RSSItem instances
     init(title: String, link: String, description: String, pubDate: String, category: String?, imageURL: String?) {
+        self.id = link // Set ID to link for stable identity
         self.title = title
         self.link = link
         self.description = description
         self.pubDate = pubDate
         self.category = category
         self.imageURL = imageURL
+    }
+    
+    // MARK: - Hashable
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(link)
+    }
+    
+    static func == (lhs: RSSItem, rhs: RSSItem) -> Bool {
+        lhs.link == rhs.link
     }
 }
 

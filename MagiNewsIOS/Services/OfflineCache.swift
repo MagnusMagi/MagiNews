@@ -10,7 +10,7 @@ import Combine
 
 // MARK: - Cache Models
 struct CachedArticle: Codable, Identifiable {
-    var id = UUID()
+    var id: String
     let rssItem: RSSItem
     let summary: String?
     let translatedTitle: String?
@@ -20,7 +20,7 @@ struct CachedArticle: Codable, Identifiable {
     let region: String
     let language: String
     
-    init(id: UUID = UUID(), rssItem: RSSItem, summary: String?, translatedTitle: String?, translatedSummary: String?, cachedAt: Date, source: String, region: String, language: String) {
+    init(id: String, rssItem: RSSItem, summary: String?, translatedTitle: String?, translatedSummary: String?, cachedAt: Date, source: String, region: String, language: String) {
         self.id = id
         self.rssItem = rssItem
         self.summary = summary
@@ -70,6 +70,7 @@ class OfflineCache: ObservableObject {
         
         let newCachedArticles = articles.map { rssItem in
             CachedArticle(
+                id: rssItem.id,
                 rssItem: rssItem,
                 summary: nil,
                 translatedTitle: nil,
@@ -85,8 +86,8 @@ class OfflineCache: ObservableObject {
         let validArticles = cachedArticles.filter { !$0.isExpired }
         
         // Add new articles, avoiding duplicates
-        let existingIds = Set(validArticles.map { $0.rssItem.id })
-        let uniqueNewArticles = newCachedArticles.filter { !existingIds.contains($0.rssItem.id) }
+        let existingIds = Set(validArticles.map { $0.id })
+        let uniqueNewArticles = newCachedArticles.filter { !existingIds.contains($0.id) }
         
         cachedArticles = validArticles + uniqueNewArticles
         
@@ -96,8 +97,8 @@ class OfflineCache: ObservableObject {
         isUpdating = false
     }
     
-    func updateArticleSummary(_ articleId: UUID, summary: String) {
-        if let index = cachedArticles.firstIndex(where: { $0.rssItem.id == articleId }) {
+    func updateArticleSummary(_ articleId: String, summary: String) {
+        if let index = cachedArticles.firstIndex(where: { $0.id == articleId }) {
             // Create a new instance with updated summary
             let currentArticle = cachedArticles[index]
             let updatedArticle = CachedArticle(

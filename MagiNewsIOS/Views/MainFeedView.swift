@@ -147,12 +147,12 @@ struct MainFeedView: View {
                     ForEach(filteredArticles) { article in
                         NewsCardView(
                             article: article,
-                            isBookmarked: .constant(bookmarkManager.isBookmarked(article.id)),
+                            isBookmarked: .constant(bookmarkManager.isBookmarked(article)),
                             onTap: {
                                 // Navigate to article detail
                             },
                             onBookmarkToggle: {
-                                bookmarkManager.toggleBookmark(for: article.id)
+                                bookmarkManager.toggleBookmark(for: article)
                             }
                         )
                         .padding(.horizontal, horizontalSizeClass == .compact ? 20 : 0)

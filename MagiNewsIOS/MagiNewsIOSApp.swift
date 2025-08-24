@@ -10,6 +10,9 @@ import SwiftData
 
 @main
 struct MagiNewsIOSApp: App {
+    @StateObject private var bookmarkManager = BookmarkManager()
+    @StateObject private var themeManager = ThemeManager()
+    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             NewsArticle.self,
@@ -28,6 +31,9 @@ struct MagiNewsIOSApp: App {
     var body: some Scene {
         WindowGroup {
             MainGridView()
+                .environmentObject(bookmarkManager)
+                .environmentObject(themeManager)
+                .preferredColorScheme(themeManager.currentColorScheme)
         }
         .modelContainer(sharedModelContainer)
     }
@@ -50,10 +56,7 @@ struct MagiNewsIOSApp: App {
 }
 
 #Preview("Search View") {
-    SearchView(
-        articles: [],
-        bookmarkManager: BookmarkManager()
-    )
+    SearchView(articles: [])
 }
 
 // MARK: - Preview Helper
